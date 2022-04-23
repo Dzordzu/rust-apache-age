@@ -1,8 +1,8 @@
 #![allow(unused_must_use)]
 
 use apache_age::{AgType, AgeClient, Client, NoTls, Vertex};
-use serde::{Deserialize, Serialize};
 use rand::{distributions::Alphanumeric, Rng};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Person {
@@ -14,11 +14,12 @@ fn connect() -> (Client, String) {
     let mut client =
         Client::connect_age("host=localhost user=postgres password=passwd", NoTls).unwrap();
 
-    let graph_name = "age_test_".to_string() + &rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(7)
-        .map(char::from)
-        .collect::<String>();
+    let graph_name = "age_test_".to_string()
+        + &rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(7)
+            .map(char::from)
+            .collect::<String>();
 
     if let Err(e) = client.create_graph(&graph_name) {
         panic!("{:?}", e);
@@ -88,7 +89,7 @@ fn simple_query() {
 fn person() {
     let (mut client, graph_name) = connect();
 
-    match client.execute_cypher(
+    if let Err(e) = client.execute_cypher(
         &graph_name,
         "CREATE(n: Person {name: $name, surname: $surname})",
         Some(AgType::<Person>(Person {
@@ -96,11 +97,37 @@ fn person() {
             surname: "Bohr".into(),
         })),
     ) {
+        println!("{:?}", e);
+        assert!(false);
+    }
+
+    if let Err(e) = client.execute_cypher(
+        &graph_name,
+        "CREATE(n: Person {name: $name, surname: $surname})",
+        Some(AgType::<Person>(Person {
+            name: "John".into(),
+            surname: "Doe".into(),
+        })),
+    ) {
+        println!("{:?}", e);
+        assert!(false);
+    }
+
+    match client.query_cypher::<()>(
+        &graph_name,
+        "MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}",
+        None
+    ) {
+        Ok(rows) => {
+            let x : AgType<Person> = rows[0].get(0);
+            assert_eq!(x.0.surname, "Bohr");
+
+        },
         Err(e) => {
             println!("{:?}", e);
-            assert!(false);
-        }
-        Ok(_) => {}
+            client.drop_graph(&graph_name);
+            panic!();
+        },
     }
 
     client.drop_graph(&graph_name);

@@ -94,3 +94,28 @@ where
 
     to_sql_checked!();
 }
+
+impl<'a, T> FromSql<'a> for AgType<T>
+where
+    T: Deserialize<'a>,
+{
+    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<AgType<T>, Box<dyn Error + Sync + Send>> {
+        if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
+            return Err("Only ag_catalog.agtype is supported".into());
+        }
+
+        let mut b = [0; 1];
+        raw.read_exact(&mut b)?;
+
+        // We only support version 1 of the jsonb binary format
+        if b[0] != 1 {
+            return Err("unsupported JSONB encoding version".into());
+        }
+
+        serde_json::de::from_slice::<AgType<T>>(raw).map_err(Into::into)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        ty.schema() == "ag_catalog" && ty.name() == "agtype"
+    }
+}

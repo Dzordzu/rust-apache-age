@@ -17,10 +17,21 @@ pub trait AgeClient {
     fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     fn execute_cypher<T>(
         &mut self,
-        name: &str,
+        graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
     ) -> Result<u64, postgres::Error>
+    where
+        T: Serialize,
+        T: std::fmt::Debug,
+        T: std::marker::Sync;
+
+    fn query_cypher<T>(
+        &mut self,
+        graph: &str,
+        cypher: &str,
+        agtype: Option<AgType<T>>,
+    ) -> Result<Vec<postgres::Row>, postgres::Error>
     where
         T: Serialize,
         T: std::fmt::Debug,
@@ -38,7 +49,7 @@ impl AgeClient for Client {
 
     fn execute_cypher<T>(
         &mut self,
-        name: &str,
+        graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
     ) -> Result<u64, postgres::Error>
@@ -47,15 +58,20 @@ impl AgeClient for Client {
         T: std::fmt::Debug,
         T: std::marker::Sync,
     {
-        let query: String = "SELECT * FROM cypher('".to_string()
-            + name
+        let mut query: String = "SELECT * FROM cypher('".to_string()
+            + graph
             + "',$$ "
-            + cypher
-            + " $$, $1) AS (v agtype)";
+            + cypher;
 
         match agtype {
-            Some(x) => self.execute(&query, &[&x]),
-            None => self.execute(&query, &[]),
+            Some(x) => {
+                query += " $$, $1) as (v agtype)";
+                self.execute(&query, &[&x])
+            },
+            None => { 
+                query += " $$) as (v agtype)";
+                self.execute(&query, &[]) 
+            },
         }
     }
 
@@ -81,5 +97,34 @@ impl AgeClient for Client {
         } else {
             new_connection
         }
+    }
+
+    fn query_cypher<T>(
+        &mut self,
+        graph: &str,
+        cypher: &str,
+        agtype: Option<AgType<T>>,
+    ) -> Result<Vec<postgres::Row>, postgres::Error>
+    where
+        T: Serialize,
+        T: std::fmt::Debug,
+        T: std::marker::Sync {
+
+        let mut query: String = "SELECT * FROM cypher('".to_string()
+            + graph
+            + "',$$ "
+            + cypher;
+
+        match agtype {
+            Some(x) => {
+                query += " $$, $1) as (v agtype)";
+                self.query(&query, &[&x])
+            },
+            None => {
+                query += " $$) as (v agtype)";
+                self.query(&query, &[]) 
+            },
+        }
+
     }
 }
