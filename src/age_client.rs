@@ -32,7 +32,7 @@ pub trait AgeClient {
     /// **IMPORTANT**: You need to return result of the query as a map
     ///
     /// Example:
-    /// ```
+    /// ```cypher
     /// MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}
     /// ```
     fn query_cypher<T>(
