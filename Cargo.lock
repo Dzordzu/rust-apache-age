@@ -9,6 +9,7 @@ dependencies = [
  "bytes",
  "postgres",
  "postgres-types",
+ "rand",
  "serde",
  "serde_json",
  "tokio-postgres",

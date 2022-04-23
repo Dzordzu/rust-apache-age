@@ -2,6 +2,7 @@
 
 use apache_age::{AgType, AgeClient, Client, NoTls, Vertex};
 use serde::{Deserialize, Serialize};
+use rand::{distributions::Alphanumeric, Rng};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Person {
@@ -13,10 +14,17 @@ fn connect() -> (Client, String) {
     let mut client =
         Client::connect_age("host=localhost user=postgres password=passwd", NoTls).unwrap();
 
-    client.drop_graph("age_test");
-    client.create_graph("age_test");
+    let graph_name = "age_test_".to_string() + &rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(7)
+        .map(char::from)
+        .collect::<String>();
 
-    (client, "age_test".into())
+    if let Err(e) = client.create_graph(&graph_name) {
+        panic!("{:?}", e);
+    }
+
+    (client, graph_name)
 }
 
 #[test]
@@ -72,6 +80,8 @@ fn simple_query() {
             assert_eq!(qlen, 2);
         }
     }
+
+    client.drop_graph(&graph_name);
 }
 
 #[test]
@@ -92,4 +102,6 @@ fn person() {
         }
         Ok(_) => {}
     }
+
+    client.drop_graph(&graph_name);
 }

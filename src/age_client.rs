@@ -29,11 +29,11 @@ pub trait AgeClient {
 
 impl AgeClient for Client {
     fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
-        self.execute("SELECT * FROM ag_catalog.create_graph($1)", &[&name])
+        self.execute("SELECT * FROM create_graph($1)", &[&name])
     }
 
     fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
-        self.execute("SELECT * FROM ag_catalog.drop_graph($1, true)", &[&name])
+        self.execute("SELECT * FROM drop_graph($1, true)", &[&name])
     }
 
     fn execute_cypher<T>(
@@ -47,11 +47,11 @@ impl AgeClient for Client {
         T: std::fmt::Debug,
         T: std::marker::Sync,
     {
-        let query: String = "SELECT * FROM ag_catalog.cypher('".to_string()
+        let query: String = "SELECT * FROM cypher('".to_string()
             + name
             + "',$$ "
             + cypher
-            + " $$, $1) AS (v ag_catalog.agtype)";
+            + " $$, $1) AS (v agtype)";
 
         match agtype {
             Some(x) => self.execute(&query, &[&x]),
