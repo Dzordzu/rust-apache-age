@@ -4,7 +4,7 @@ description = "Rust driver for the Apache AGE. Based on postgres package"
 license = "apache"
 version = "0.1.0"
 edition = "2021"
-repository = "https://github.com/tomasz.durda/rust-apache-age.git"
+repository = "https://github.com/dzordzu/rust-apache-age.git"
 authors = [ "Tomasz Durda" ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
