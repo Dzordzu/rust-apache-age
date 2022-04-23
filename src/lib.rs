@@ -3,21 +3,13 @@ mod structures;
 
 pub use age_client::AgeClient;
 pub use postgres::{Client, NoTls};
+pub use structures::{Edge, Vertex};
 
-use bytes::{BufMut, BytesMut};
+use bytes::BufMut;
 use postgres_types::{to_sql_checked, FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::io::{Read, Write};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Vertex<T>(pub crate::structures::Vertex<T>);
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Edge<T>(pub crate::structures::Edge<T>);
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AgType<T>(pub T);
+use std::io::Read;
 
 impl<'a, T> FromSql<'a> for Vertex<T>
 where
@@ -39,9 +31,7 @@ where
         // Remove ::vertex from bytes
         let raw_splitted = raw.split_at(raw.len() - 8).0;
 
-        serde_json::de::from_slice(raw_splitted)
-            .map(Vertex)
-            .map_err(Into::into)
+        serde_json::de::from_slice::<Vertex<T>>(raw_splitted).map_err(Into::into)
     }
 
     fn accepts(ty: &Type) -> bool {
@@ -69,15 +59,16 @@ where
         // Remove ::vertex from bytes
         let raw_splitted = raw.split_at(raw.len() - 6).0;
 
-        serde_json::de::from_slice(raw_splitted)
-            .map(Edge)
-            .map_err(Into::into)
+        serde_json::de::from_slice::<Edge<T>>(raw_splitted).map_err(Into::into)
     }
 
     fn accepts(ty: &Type) -> bool {
         ty.schema() == "ag_catalog" && ty.name() == "agtype"
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AgType<T>(pub T);
 
 impl<T> ToSql for AgType<T>
 where
@@ -90,7 +81,7 @@ where
 
     fn to_sql(
         &self,
-        ty: &Type,
+        _ty: &Type,
         out: &mut postgres_types::private::BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>>
     where

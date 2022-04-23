@@ -1,9 +1,11 @@
 use crate::AgType;
-use postgres::{Client, Socket, tls::{MakeTlsConnect, TlsConnect}};
+use postgres::{
+    tls::{MakeTlsConnect, TlsConnect},
+    Client, Socket,
+};
 use serde::Serialize;
 
 pub trait AgeClient {
-
     fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, postgres::Error>
     where
         T: MakeTlsConnect<Socket> + 'static + Send,
@@ -17,7 +19,7 @@ pub trait AgeClient {
         &mut self,
         name: &str,
         cypher: &str,
-        agtype: AgType<T>,
+        agtype: Option<AgType<T>>,
     ) -> Result<u64, postgres::Error>
     where
         T: Serialize,
@@ -38,7 +40,7 @@ impl AgeClient for Client {
         &mut self,
         name: &str,
         cypher: &str,
-        agtype: AgType<T>,
+        agtype: Option<AgType<T>>,
     ) -> Result<u64, postgres::Error>
     where
         T: Serialize,
@@ -50,7 +52,11 @@ impl AgeClient for Client {
             + "',$$ "
             + cypher
             + " $$, $1) AS (v ag_catalog.agtype)";
-        self.execute(&query, &[&agtype])
+
+        match agtype {
+            Some(x) => self.execute(&query, &[&x]),
+            None => self.execute(&query, &[]),
+        }
     }
 
     fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, postgres::Error>
@@ -58,21 +64,22 @@ impl AgeClient for Client {
         T: MakeTlsConnect<Socket> + 'static + Send,
         T::TlsConnect: Send,
         T::Stream: Send,
-        <T::TlsConnect as TlsConnect<Socket>>::Future: Send {
-
+        <T::TlsConnect as TlsConnect<Socket>>::Future: Send,
+    {
         let new_connection = Client::connect(params, tls_mode);
 
-        if let Ok(mut client) =  new_connection {
-            /// TODO handle errors
-            client.simple_query("CREATE EXTENSION age");
-            client.simple_query("LOAD 'age'");
-            client.simple_query("SET search_path = ag_catalog, \"$user\", public");
-            return Ok(client);
+        if let Ok(mut client) = new_connection {
+            for query in [
+                client.simple_query("LOAD 'age'"),
+                client.simple_query("SET search_path = ag_catalog, \"$user\", public"),
+            ] {
+                if let Err(err) = query {
+                    return Err(err);
+                };
+            }
+            Ok(client)
+        } else {
+            new_connection
         }
-        else { return new_connection; }
-
     }
-
-
-
 }
