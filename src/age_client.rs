@@ -5,6 +5,7 @@ use postgres::{
 };
 use serde::Serialize;
 
+/// Handles connecting, configuring and querying graph dbs within postgres instance
 pub trait AgeClient {
     fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, postgres::Error>
     where
@@ -26,6 +27,14 @@ pub trait AgeClient {
         T: std::fmt::Debug,
         T: std::marker::Sync;
 
+    /// Query cypher for a single agtype (in a format of json)
+    ///
+    /// **IMPORTANT**: You need to return result of the query as a map
+    ///
+    /// Example:
+    /// ```
+    /// MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}
+    /// ```
     fn query_cypher<T>(
         &mut self,
         graph: &str,
@@ -58,20 +67,17 @@ impl AgeClient for Client {
         T: std::fmt::Debug,
         T: std::marker::Sync,
     {
-        let mut query: String = "SELECT * FROM cypher('".to_string()
-            + graph
-            + "',$$ "
-            + cypher;
+        let mut query: String = "SELECT * FROM cypher('".to_string() + graph + "',$$ " + cypher;
 
         match agtype {
             Some(x) => {
                 query += " $$, $1) as (v agtype)";
                 self.execute(&query, &[&x])
-            },
-            None => { 
+            }
+            None => {
                 query += " $$) as (v agtype)";
-                self.execute(&query, &[]) 
-            },
+                self.execute(&query, &[])
+            }
         }
     }
 
@@ -108,23 +114,19 @@ impl AgeClient for Client {
     where
         T: Serialize,
         T: std::fmt::Debug,
-        T: std::marker::Sync {
-
-        let mut query: String = "SELECT * FROM cypher('".to_string()
-            + graph
-            + "',$$ "
-            + cypher;
+        T: std::marker::Sync,
+    {
+        let mut query: String = "SELECT * FROM cypher('".to_string() + graph + "',$$ " + cypher;
 
         match agtype {
             Some(x) => {
                 query += " $$, $1) as (v agtype)";
                 self.query(&query, &[&x])
-            },
+            }
             None => {
                 query += " $$) as (v agtype)";
-                self.query(&query, &[]) 
-            },
+                self.query(&query, &[])
+            }
         }
-
     }
 }

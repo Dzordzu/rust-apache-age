@@ -11,8 +11,11 @@ struct Person {
 }
 
 fn connect() -> (Client, String) {
-    let mut client =
-        Client::connect_age("host=localhost user=postgres password=passwd", NoTls).unwrap();
+    let mut client = Client::connect_age(
+        "host=localhost user=postgres password=passwd port=8081",
+        NoTls,
+    )
+    .unwrap();
 
     let graph_name = "age_test_".to_string()
         + &rand::thread_rng()
@@ -116,18 +119,17 @@ fn person() {
     match client.query_cypher::<()>(
         &graph_name,
         "MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}",
-        None
+        None,
     ) {
         Ok(rows) => {
-            let x : AgType<Person> = rows[0].get(0);
+            let x: AgType<Person> = rows[0].get(0);
             assert_eq!(x.0.surname, "Bohr");
-
-        },
+        }
         Err(e) => {
             println!("{:?}", e);
             client.drop_graph(&graph_name);
             panic!();
-        },
+        }
     }
 
     client.drop_graph(&graph_name);

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Represents vertex within graph. Used during process of vertex deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Vertex<T> {
     id: u64,
@@ -21,6 +22,7 @@ impl<T> Vertex<T> {
     }
 }
 
+/// Represents edge within graph. Used during process of edge deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Edge<T> {
     id: u64,

@@ -1,3 +1,5 @@
+#![doc = include_str!("docs.md")]
+
 mod age_client;
 mod structures;
 
@@ -67,6 +69,7 @@ where
     }
 }
 
+/// Simple wrapper (similar to JSONB) that handles agtype serialization and deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AgType<T>(pub T);
 
