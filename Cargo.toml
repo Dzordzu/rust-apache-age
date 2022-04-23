@@ -1,7 +1,7 @@
 [package]
 name = "apache_age"
 description = "Rust driver for the Apache AGE. Based on postgres package"
-license = "apache"
+license = "apache2"
 version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/dzordzu/rust-apache-age.git"
