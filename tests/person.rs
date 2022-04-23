@@ -1,4 +1,5 @@
 use apache_age::{AgType, AgeClient, Client, NoTls, Vertex};
+use postgres::{SimpleQueryMessage, SimpleQueryRow};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -10,29 +11,15 @@ struct Person {
 #[test]
 fn person() {
     let mut client =
-        Client::connect("host=localhost user=postgres password=passwd", NoTls).unwrap();
+        Client::connect_age("host=localhost user=postgres password=passwd", NoTls).unwrap();
 
-    client.drop_graph("age_test");
-    client.create_graph("age_test");
+    client.drop_graph("age");
+    client.create_graph("age");
 
-    // match client.execute_cypher(
-    //     "age_test",
-    //     "CREATE(n: Person {name: $name, surname: $surname})",
-    //     AgType::<Person>(Person {
-    //         name: "Alfred".into(),
-    //         surname: "Bohr".into(),
-    //     }),
-    // ) {
-    //     Err(e) => {
-    //         println!("{:?}", e);
-    //         assert_eq!(1, 2);
-    //     }
-    //     Ok(_) => {}
-    // }
+    client.simple_query("SELECT * FROM cypher('age', $$ CREATE(n:Person {name: 'T', surname: 'Doe'}) RETURN n $$) AS (v agtype)");
 
     match client.query(
-        "SELECT v FROM ag_catalog.cypher('age', $$ MATCH(n: Person) WHERE 1=1 RETURN n $$) AS (v ag_catalog.agtype);",
-        &[],
+        "SELECT v FROM ag_catalog.cypher('age', $$ MATCH(n: Person) WHERE 1=1 RETURN n $$) AS (v ag_catalog.agtype);", &[]
     ) {
         Err(e) => {
             print!("{:?}", e);
@@ -41,15 +28,25 @@ fn person() {
         Ok(query) => {
             let qlen = query.len();
             for row in query {
-                let x: Result<Vertex<Person>, postgres::Error> = row.try_get(0);
-                match x {
-                    Err(e) => println!("Err: {:?}", e),
-                    Ok(obj) => {
-                        println!("{:?}", obj);
-                    }
-                }
+                let person_vertex : Vertex<Person> = row.get(0);
             }
-            assert_eq!(qlen, 1221);
+            assert_eq!(qlen, 1);
         }
     }
+
+    match client.execute_cypher(
+        "age",
+        "CREATE(n: Person {name: $name, surname: $surname})",
+        AgType::<Person>(Person {
+            name: "Alfred".into(),
+            surname: "Bohr".into(),
+        }),
+    ) {
+        Err(e) => {
+            println!("{:?}", e);
+            assert!(false);
+        }
+        Ok(_) => {}
+    }
+
 }

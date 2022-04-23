@@ -4,7 +4,7 @@ mod structures;
 pub use age_client::AgeClient;
 pub use postgres::{Client, NoTls};
 
-use bytes::BufMut;
+use bytes::{BufMut, BytesMut};
 use postgres_types::{to_sql_checked, FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -96,11 +96,8 @@ where
     where
         Self: Sized,
     {
-        let serialized_json = serde_json::to_string(&self.0).unwrap();
-        let arg = String::from("'") + &serialized_json + "'";
-        println!("{}", arg);
-        println!("{:?}", ty);
-        out.writer().write_all(arg.as_bytes());
+        out.put_u8(1);
+        serde_json::ser::to_writer(out.writer(), &self.0)?;
         Ok(IsNull::No)
     }
 
