@@ -47,3 +47,13 @@ client.drop_graph("my_apache_graph");
 - [Documentation](https://docs.rs/apache_age/0.1.0/apache_age/)
 - [Source code](https://github.com/Dzordzu/rust-apache-age)
 
+## Testing
+
+There is a simple docker-compose file within tests directory. Run it to set up an AGE db.
+
+```bash
+pushd tests
+docker-compose up -d
+popd
+cargo t
+```
