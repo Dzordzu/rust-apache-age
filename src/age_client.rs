@@ -14,8 +14,40 @@ pub trait AgeClient {
         T::Stream: Send,
         <T::TlsConnect as TlsConnect<Socket>>::Future: Send;
 
+    /// Create a new constraint for the certain label within graph
+    ///
+    /// **IMPORTANT**: At least one object has to be created with a certain label
+    fn constraint(
+        &mut self,
+        name: &str,
+        graph: &str,
+        label: &str,
+        constraint_text: &str
+    ) -> Result<u64, postgres::Error>;
+
+    /// Create unique index for the certain field for the label within graph
+    ///
+    /// **IMPORTANT**: At least one object has to be created with a certain label
+    fn unique_index(
+        &mut self,
+        name: &str,
+        graph: &str,
+        label: &str,
+        field: &str
+    ) -> Result<u64, postgres::Error>;
+
+    fn required_constraint(
+        &mut self,
+        name: &str,
+        graph: &str,
+        label: &str,
+        field: &str
+    ) -> Result<u64, postgres::Error>;
+
     fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
+    
+    /// Exexute cypher query, without any rows to be retured
     fn execute_cypher<T>(
         &mut self,
         graph: &str,
@@ -129,4 +161,58 @@ impl AgeClient for Client {
             }
         }
     }
+
+    fn constraint(
+        &mut self,
+        name: &str,
+        graph: &str,
+        label: &str,
+        constraint_text: &str
+    ) -> Result<u64, postgres::Error> {
+        
+        let query = format!(
+            "ALTER TABLE {}.\"{}\" ADD CONSTRAINT {} CHECK({})",
+            graph,
+            label,
+            name,
+            constraint_text
+        );
+
+        self.execute(&query, &[])
+    }
+
+    fn unique_index(
+        &mut self,
+        name: &str,
+        graph: &str,
+        label: &str,
+        field: &str
+    ) -> Result<u64, postgres::Error> {
+        let query = format!(
+            "CREATE UNIQUE INDEX {} ON {}.\"{}\"(agtype_access_operator(properties, '\"{}\"'))",
+            name,
+            graph,
+            label,
+            field
+        );
+
+        self.execute(&query, &[])
+    }
+
+    fn required_constraint(
+        &mut self,
+        name: &str,
+        graph: &str,
+        label: &str,
+        field: &str
+    ) -> Result<u64, postgres::Error> {
+        self.constraint(
+            name, 
+            graph, 
+            label, 
+            &format!("agtype_access_operator(properties, '\"{}\"') IS NOT NULL", field)
+        )
+    }
+
+
 }

@@ -4,6 +4,13 @@ use apache_age::{AgType, AgeClient, Client, NoTls, Vertex};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 
+macro_rules! terminate {
+    ($client: ident, $graph_name: ident) => {
+        $client.drop_graph(&$graph_name);
+        assert!(false);
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Person {
     pub name: String,
@@ -56,7 +63,7 @@ fn simple_query() {
     ) {
         Err(e) => {
             print!("{:?}", e);
-            assert!(false);
+            terminate!(client, graph_name);
         }
         Ok(query) => {
             let qlen = query.len();
@@ -77,7 +84,7 @@ fn simple_query() {
     ) {
         Err(e) => {
             print!("{:?}", e);
-            assert!(false);
+            terminate!(client, graph_name);
         }
         Ok(query) => {
             let qlen = query.len();
@@ -101,7 +108,7 @@ fn person() {
         })),
     ) {
         println!("{:?}", e);
-        assert!(false);
+        terminate!(client, graph_name);
     }
 
     if let Err(e) = client.execute_cypher(
@@ -113,7 +120,7 @@ fn person() {
         })),
     ) {
         println!("{:?}", e);
-        assert!(false);
+        terminate!(client, graph_name);
     }
 
     match client.query_cypher::<()>(
@@ -127,8 +134,7 @@ fn person() {
         }
         Err(e) => {
             println!("{:?}", e);
-            client.drop_graph(&graph_name);
-            panic!();
+            terminate!(client, graph_name);
         }
     }
 
