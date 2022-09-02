@@ -48,7 +48,8 @@ fn connect() -> (Client, String) {
             .collect::<String>();
 
     if let Err(e) = client.create_graph(&graph_name) {
-        panic!("{:?}", e);
+        println!("{:?}", e);
+        assert!(false);
     }
 
     (client, graph_name)
@@ -153,6 +154,73 @@ fn person() {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct IdPassing {
+    id: usize
+}
+
 #[test]
-fn constraint() {
+fn unique_index() {
+    let mut tc = TestConnection::new();
+
+    let result = tc.client.query_cypher::<()>(
+        &tc.graph_name,
+        "CREATE(n: Person {name: 'Dummy', surname: 'Name'}) RETURN id(n)",
+        None
+    );
+
+    let dummy_person : usize = match result {
+        Ok(rows) => { rows[0].get(0) }
+        Err(_) => { 
+            assert!(false); 
+            AgType::<usize>(0)
+        }
+    }.0;
+
+    match tc.client.unique_index(
+        &tc.graph_name,
+        "Person",
+        "myconstraint",
+        "surname"
+    ) {
+        Ok(_) => {
+
+        }
+        Err(_) => {
+            println!("DA FUK");
+        }
+    }
+
+
+    tc.client.execute_cypher::<IdPassing>(
+        &tc.graph_name, 
+        "MATCH (n: Person) WHERE id(n) = $id DELETE n",
+        Some(AgType::<IdPassing>(IdPassing { id: dummy_person }))
+    );
+
+    tc.client.execute_cypher::<()>(
+        &tc.graph_name,
+        "CREATE(n: Person {name: 'Dummy', surname: 'Name'})",
+        None
+    );
+
+    match tc.client.execute_cypher::<()>(
+        &tc.graph_name,
+        "CREATE(n: Person {name: 'Dummy', surname: 'Name'})",
+        None
+    ) {
+        Ok(_) => {
+            let x = tc.client.query_cypher::<()>(
+                &tc.graph_name,
+                "MATCH (x: Person) RETURN count(x)",
+                None
+            );
+
+            let y : AgType<i32> = x.unwrap()[0].get(0);
+            println!("{}", y.0);
+            assert!(false);
+        }
+        Err(_) => {
+        }
+    }
 }

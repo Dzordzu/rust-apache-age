@@ -19,9 +19,9 @@ pub trait AgeClient {
     /// **IMPORTANT**: At least one object has to be created with a certain label
     fn constraint(
         &mut self,
-        name: &str,
         graph: &str,
         label: &str,
+        name: &str,
         constraint_text: &str
     ) -> Result<u64, postgres::Error>;
 
@@ -30,17 +30,17 @@ pub trait AgeClient {
     /// **IMPORTANT**: At least one object has to be created with a certain label
     fn unique_index(
         &mut self,
-        name: &str,
         graph: &str,
         label: &str,
+        name: &str,
         field: &str
     ) -> Result<u64, postgres::Error>;
 
     fn required_constraint(
         &mut self,
-        name: &str,
         graph: &str,
         label: &str,
+        name: &str,
         field: &str
     ) -> Result<u64, postgres::Error>;
 
@@ -164,14 +164,14 @@ impl AgeClient for Client {
 
     fn constraint(
         &mut self,
-        name: &str,
         graph: &str,
         label: &str,
+        name: &str,
         constraint_text: &str
     ) -> Result<u64, postgres::Error> {
         
         let query = format!(
-            "ALTER TABLE {}.\"{}\" ADD CONSTRAINT {} CHECK({})",
+            "ALTER TABLE \"{}\".\"{}\" ADD CONSTRAINT \"{}\" CHECK({})",
             graph,
             label,
             name,
@@ -183,13 +183,13 @@ impl AgeClient for Client {
 
     fn unique_index(
         &mut self,
-        name: &str,
         graph: &str,
         label: &str,
+        name: &str,
         field: &str
     ) -> Result<u64, postgres::Error> {
         let query = format!(
-            "CREATE UNIQUE INDEX {} ON {}.\"{}\"(agtype_access_operator(properties, '\"{}\"'))",
+            "CREATE UNIQUE INDEX \"{}\" ON \"{}\".\"{}\"(agtype_access_operator(properties, '\"{}\"'))",
             name,
             graph,
             label,
@@ -201,9 +201,9 @@ impl AgeClient for Client {
 
     fn required_constraint(
         &mut self,
-        name: &str,
         graph: &str,
         label: &str,
+        name: &str,
         field: &str
     ) -> Result<u64, postgres::Error> {
         self.constraint(
