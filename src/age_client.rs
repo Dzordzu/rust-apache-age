@@ -178,6 +178,8 @@ impl AgeClient for Client {
             constraint_text
         );
 
+        println!("{}", query);
+
         self.execute(&query, &[])
     }
 
@@ -207,9 +209,9 @@ impl AgeClient for Client {
         field: &str
     ) -> Result<u64, postgres::Error> {
         self.constraint(
-            name, 
             graph, 
             label, 
+            name, 
             &format!("agtype_access_operator(properties, '\"{}\"') IS NOT NULL", field)
         )
     }
