@@ -175,3 +175,48 @@ And without
 
    client.drop_graph("my_apache_graph");
 ```
+
+## Constraints and indexes
+
+There is also support for `unique` and `required` constraints. You may see `tests` directory for more examples
+
+```rust
+   use apache_age::{AgeClient, Client, NoTls, AgType};
+
+   let mut client = Client::connect_age(
+     "host=localhost user=postgres password=passwd port=8081",
+     NoTls
+   ).unwrap();
+   client.create_graph("my_apache_graph");
+   
+    let result = client.query_cypher::<()>(
+        "my_apache_graph",
+        "CREATE(n: Person {name: 'Dummy', surname: 'Name'}) RETURN id(n)",
+        None
+    );
+
+    let dummy_person : usize = match result {
+        Ok(rows) => { rows[0].get(0) }
+        Err(_) => { 
+            assert!(false); 
+            AgType::<usize>(0)
+        }
+    }.0;
+
+    client.required_constraint(
+        "my_apache_graph",
+        "Person",
+        "myconstraint",
+        "surname"
+    );
+
+    client.unique_index(
+        "my_apache_graph",
+        "Person",
+        "myconstraint",
+        "name"
+    );
+
+
+   client.drop_graph("my_apache_graph");
+```
