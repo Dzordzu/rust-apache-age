@@ -4,17 +4,33 @@ use apache_age::{AgType, AgeClient, Client, NoTls, Vertex};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 
-macro_rules! terminate {
-    ($client: ident, $graph_name: ident) => {
-        $client.drop_graph(&$graph_name);
-        assert!(false);
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Person {
     pub name: String,
     pub surname: String,
+}
+
+struct TestConnection {
+    pub client: Client,
+    pub graph_name: String,
+}
+
+impl TestConnection {
+    pub fn new() -> Self {
+        let (client, graph_name) = connect();
+
+        Self { 
+            client, 
+            graph_name
+
+        }
+    }
+}
+
+impl Drop for TestConnection {
+    fn drop(&mut self) {
+        self.client.drop_graph(&self.graph_name);
+    }
 }
 
 fn connect() -> (Client, String) {
@@ -40,30 +56,30 @@ fn connect() -> (Client, String) {
 
 #[test]
 fn simple_query() {
-    let (mut client, graph_name) = connect();
+    let mut tc = TestConnection::new();
 
-    client.simple_query(
+    tc.client.simple_query(
         &("SELECT * FROM cypher('".to_string()
-            + &graph_name
+            + &tc.graph_name
             + "', $$ CREATE(n:Person {name: 'T', surname: 'Doe'}) RETURN n $$) AS (v agtype)"),
     );
 
-    client.simple_query(
+    tc.client.simple_query(
         &("SELECT * FROM cypher('".to_string()
-            + &graph_name
+            + &tc.graph_name
             + "', $$ CREATE(n:Person {name: 'Jack', surname: 'Hell'}) RETURN n $$) AS (v agtype)"),
     );
 
     // Query, not query_one on puropose, just checking if iterating works
-    match client.query(
+    match tc.client.query(
         &("SELECT v FROM ag_catalog.cypher('".to_string()
-            + &graph_name
+            + &tc.graph_name
             + "', $$ MATCH(n: Person) WHERE n.name='T' RETURN n $$) AS (v ag_catalog.agtype)"),
         &[],
     ) {
         Err(e) => {
             print!("{:?}", e);
-            terminate!(client, graph_name);
+            assert!(false);
         }
         Ok(query) => {
             let qlen = query.len();
@@ -76,31 +92,29 @@ fn simple_query() {
         }
     }
 
-    match client.query(
+    match tc.client.query(
         &("SELECT v FROM ag_catalog.cypher('".to_string()
-            + &graph_name
+            + &tc.graph_name
             + "', $$ MATCH(n: Person) RETURN n $$) AS (v ag_catalog.agtype)"),
         &[],
     ) {
         Err(e) => {
             print!("{:?}", e);
-            terminate!(client, graph_name);
+            assert!(false);
         }
         Ok(query) => {
             let qlen = query.len();
             assert_eq!(qlen, 2);
         }
     }
-
-    client.drop_graph(&graph_name);
 }
 
 #[test]
 fn person() {
-    let (mut client, graph_name) = connect();
+    let mut tc = TestConnection::new();
 
-    if let Err(e) = client.execute_cypher(
-        &graph_name,
+    if let Err(e) = tc.client.execute_cypher(
+        &tc.graph_name,
         "CREATE(n: Person {name: $name, surname: $surname})",
         Some(AgType::<Person>(Person {
             name: "Alfred".into(),
@@ -108,11 +122,11 @@ fn person() {
         })),
     ) {
         println!("{:?}", e);
-        terminate!(client, graph_name);
+        assert!(false);
     }
 
-    if let Err(e) = client.execute_cypher(
-        &graph_name,
+    if let Err(e) = tc.client.execute_cypher(
+        &tc.graph_name,
         "CREATE(n: Person {name: $name, surname: $surname})",
         Some(AgType::<Person>(Person {
             name: "John".into(),
@@ -120,11 +134,11 @@ fn person() {
         })),
     ) {
         println!("{:?}", e);
-        terminate!(client, graph_name);
+        assert!(false);
     }
 
-    match client.query_cypher::<()>(
-        &graph_name,
+    match tc.client.query_cypher::<()>(
+        &tc.graph_name,
         "MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}",
         None,
     ) {
@@ -134,9 +148,11 @@ fn person() {
         }
         Err(e) => {
             println!("{:?}", e);
-            terminate!(client, graph_name);
+            assert!(false);
         }
     }
+}
 
-    client.drop_graph(&graph_name);
+#[test]
+fn constraint() {
 }
