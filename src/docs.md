@@ -1,5 +1,9 @@
 Library that can be used as a connector for the apache age instance. Uses prepared statements by default
 
+# Tokio support
+
+This library support asynchronous operations. You just need to enable `tokio` feature
+
 # Examples
 
 You can see more within `tests` directory

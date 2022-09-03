@@ -1,13 +1,18 @@
+use async_trait::async_trait;
 use crate::AgType;
-use postgres::{
+use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Client, Socket,
+    connect
 };
 use serde::Serialize;
 
+use super::constants::*;
+
+#[async_trait]
 /// Handles connecting, configuring and querying graph dbs within postgres instance
-pub trait AgeClient {
-    fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, postgres::Error>
+trait AgeClient {
+    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, tokio_postgres::Error>
     where
         T: MakeTlsConnect<Socket> + 'static + Send,
         T::TlsConnect: Send,
@@ -17,7 +22,7 @@ pub trait AgeClient {
     /// Create a new constraint for the certain label within graph
     ///
     /// **IMPORTANT**: At least one object has to be created with a certain label
-    fn constraint(
+    async fn constraint(
         &mut self,
         graph: &str,
         label: &str,
@@ -28,7 +33,7 @@ pub trait AgeClient {
     /// Create unique index for the certain field for the label within graph
     ///
     /// **IMPORTANT**: At least one object has to be created with a certain label
-    fn unique_index(
+    async fn unique_index(
         &mut self,
         graph: &str,
         label: &str,
@@ -36,7 +41,7 @@ pub trait AgeClient {
         field: &str
     ) -> Result<u64, postgres::Error>;
 
-    fn required_constraint(
+    async fn required_constraint(
         &mut self,
         graph: &str,
         label: &str,
@@ -44,11 +49,11 @@ pub trait AgeClient {
         field: &str
     ) -> Result<u64, postgres::Error>;
 
-    fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
-    fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
+    async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
+    async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     
     /// Exexute cypher query, without any rows to be retured
-    fn execute_cypher<T>(
+    async fn execute_cypher<T>(
         &mut self,
         graph: &str,
         cypher: &str,
@@ -57,7 +62,8 @@ pub trait AgeClient {
     where
         T: Serialize,
         T: std::fmt::Debug,
-        T: std::marker::Sync;
+        T: std::marker::Sync,
+        T: std::marker::Send;
 
     /// Query cypher for a single agtype (in a format of json)
     ///
@@ -67,7 +73,7 @@ pub trait AgeClient {
     /// ```cypher
     /// MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}
     /// ```
-    fn query_cypher<T>(
+    async fn query_cypher<T>(
         &mut self,
         graph: &str,
         cypher: &str,
@@ -76,68 +82,50 @@ pub trait AgeClient {
     where
         T: Serialize,
         T: std::fmt::Debug,
-        T: std::marker::Sync;
+        T: std::marker::Sync,
+        T: std::marker::Send;
 }
 
+
+#[async_trait]
 impl AgeClient for Client {
-    fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
-        self.execute("SELECT * FROM create_graph($1)", &[&name])
+    async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
+        self.execute(CREATE_GRAPH, &[&name]).await
     }
 
-    fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
-        self.execute("SELECT * FROM drop_graph($1, true)", &[&name])
+    async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
+        self.execute(DROP_GRAPH, &[&name]).await
     }
 
-    fn execute_cypher<T>(
-        &mut self,
-        graph: &str,
-        cypher: &str,
-        agtype: Option<AgType<T>>,
-    ) -> Result<u64, postgres::Error>
-    where
-        T: Serialize,
-        T: std::fmt::Debug,
-        T: std::marker::Sync,
-    {
-        let mut query: String = "SELECT * FROM cypher('".to_string() + graph + "',$$ " + cypher;
-
-        match agtype {
-            Some(x) => {
-                query += " $$, $1) as (v agtype)";
-                self.execute(&query, &[&x])
-            }
-            None => {
-                query += " $$) as (v agtype)";
-                self.execute(&query, &[])
-            }
-        }
-    }
-
-    fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, postgres::Error>
+    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, tokio_postgres::Error>
     where
         T: MakeTlsConnect<Socket> + 'static + Send,
         T::TlsConnect: Send,
         T::Stream: Send,
         <T::TlsConnect as TlsConnect<Socket>>::Future: Send,
     {
-        let new_connection = Client::connect(params, tls_mode);
+        let new_connection = connect(params, tls_mode).await?;
 
-        if let Ok(mut client) = new_connection {
-            for query in [
-                client.simple_query("LOAD 'age'"),
-                client.simple_query("SET search_path = ag_catalog, \"$user\", public"),
-            ] {
-                if let Err(err) = query {
-                    return Err(err);
-                };
+        let (client, connection) = new_connection;
+
+        tokio::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", e);
             }
-            Ok(client)
-        } else {
-            new_connection
+        });
+
+        for query in [
+            client.simple_query(LOAD_AGE).await,
+            client.simple_query(SET_AGE).await,
+        ] {
+            if let Err(err) = query {
+                return Err(err);
+            };
         }
+        Ok(client)
     }
 
-    fn query_cypher<T>(
+    async fn query_cypher<T>(
         &mut self,
         graph: &str,
         cypher: &str,
@@ -147,22 +135,33 @@ impl AgeClient for Client {
         T: Serialize,
         T: std::fmt::Debug,
         T: std::marker::Sync,
+        T: std::marker::Send
     {
-        let mut query: String = "SELECT * FROM cypher('".to_string() + graph + "',$$ " + cypher;
-
         match agtype {
             Some(x) => {
-                query += " $$, $1) as (v agtype)";
-                self.query(&query, &[&x])
+                let query = format!(
+                    cypher_query!(),
+                    graph, 
+                    cypher,
+                    CQ_ARG
+                );
+
+                self.query(&query, &[&x]).await
             }
             None => {
-                query += " $$) as (v agtype)";
-                self.query(&query, &[])
+                let query = format!(
+                    cypher_query!(),
+                    graph, 
+                    cypher,
+                    CQ_NO_ARG
+                );
+
+                self.query(&query, &[]).await
             }
         }
     }
 
-    fn constraint(
+    async fn constraint(
         &mut self,
         graph: &str,
         label: &str,
@@ -171,19 +170,17 @@ impl AgeClient for Client {
     ) -> Result<u64, postgres::Error> {
         
         let query = format!(
-            "ALTER TABLE \"{}\".\"{}\" ADD CONSTRAINT \"{}\" CHECK({})",
+            constraint!(),
             graph,
             label,
             name,
             constraint_text
         );
 
-        println!("{}", query);
-
-        self.execute(&query, &[])
+        self.execute(&query, &[]).await
     }
 
-    fn unique_index(
+    async fn unique_index(
         &mut self,
         graph: &str,
         label: &str,
@@ -191,17 +188,17 @@ impl AgeClient for Client {
         field: &str
     ) -> Result<u64, postgres::Error> {
         let query = format!(
-            "CREATE UNIQUE INDEX \"{}\" ON \"{}\".\"{}\"(agtype_access_operator(properties, '\"{}\"'))",
+            unique_index!(),
             name,
             graph,
             label,
             field
         );
 
-        self.execute(&query, &[])
+        self.execute(&query, &[]).await
     }
 
-    fn required_constraint(
+    async fn required_constraint(
         &mut self,
         graph: &str,
         label: &str,
@@ -212,9 +209,47 @@ impl AgeClient for Client {
             graph, 
             label, 
             name, 
-            &format!("agtype_access_operator(properties, '\"{}\"') IS NOT NULL", field)
-        )
+            &format!(
+                required_constraint!(), 
+                field
+            )
+        ).await
     }
 
+    async fn execute_cypher<T>(
+        &mut self,
+        graph: &str,
+        cypher: &str,
+        agtype: Option<AgType<T>>,
+    ) -> Result<u64, postgres::Error>
+    where
+        T: Serialize,
+        T: std::fmt::Debug,
+        T: std::marker::Sync,
+        T: std::marker::Send,
+    {
+        match agtype {
+            Some(x) => {
+                let query = format!(
+                    cypher_query!(),
+                    graph, 
+                    cypher,
+                    CQ_ARG
+                );
 
+                self.execute(&query, &[&x]).await
+            }
+            None => {
+                let query = format!(
+                    cypher_query!(),
+                    graph, 
+                    cypher,
+                    CQ_NO_ARG
+                );
+
+                self.execute(&query, &[]).await
+            }
+        }
+
+    }
 }
