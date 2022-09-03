@@ -2,17 +2,20 @@ use async_trait::async_trait;
 use crate::AgType;
 use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
-    Client, Socket,
+    Socket,
     connect
 };
 use serde::Serialize;
 
 use super::constants::*;
 
+pub use tokio_postgres::Client;
+pub use tokio::task::JoinHandle;
+
 #[async_trait]
 /// Handles connecting, configuring and querying graph dbs within postgres instance
-trait AgeClient {
-    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, tokio_postgres::Error>
+pub trait AgeClient {
+    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
     where
         T: MakeTlsConnect<Socket> + 'static + Send,
         T::TlsConnect: Send,
@@ -97,7 +100,7 @@ impl AgeClient for Client {
         self.execute(DROP_GRAPH, &[&name]).await
     }
 
-    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, tokio_postgres::Error>
+    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
     where
         T: MakeTlsConnect<Socket> + 'static + Send,
         T::TlsConnect: Send,
@@ -108,7 +111,7 @@ impl AgeClient for Client {
 
         let (client, connection) = new_connection;
 
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             if let Err(e) = connection.await {
                 eprintln!("connection error: {}", e);
             }
@@ -122,7 +125,7 @@ impl AgeClient for Client {
                 return Err(err);
             };
         }
-        Ok(client)
+        Ok((client, handle))
     }
 
     async fn query_cypher<T>(

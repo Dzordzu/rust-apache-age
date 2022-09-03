@@ -1,5 +1,5 @@
 #[macro_use]
-pub mod constants;
+mod constants;
 
 #[cfg(feature = "tokio")]
 pub mod tokio;

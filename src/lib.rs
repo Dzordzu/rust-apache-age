@@ -3,6 +3,9 @@
 mod age_client;
 mod structures;
 
+#[cfg(feature = "tokio")]
+pub use age_client::tokio as tokio_client;
+
 pub use age_client::AgeClient;
 pub use postgres::{Client, NoTls};
 pub use structures::{Edge, Vertex};

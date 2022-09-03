@@ -191,36 +191,38 @@ There is also support for `unique` and `required` constraints. You may see `test
      "host=localhost user=postgres password=passwd port=8081",
      NoTls
    ).unwrap();
-   client.create_graph("my_apache_graph");
+
+   client.create_graph("my_apache_graph_07");
    
     let result = client.query_cypher::<()>(
-        "my_apache_graph",
+        "my_apache_graph_07",
         "CREATE(n: Person {name: 'Dummy', surname: 'Name'}) RETURN id(n)",
         None
     );
 
     let dummy_person : usize = match result {
         Ok(rows) => { rows[0].get(0) }
-        Err(_) => { 
+        Err(e) => { 
+            println!("{}", e);
             assert!(false); 
             AgType::<usize>(0)
         }
     }.0;
 
     client.required_constraint(
-        "my_apache_graph",
+        "my_apache_graph_07",
         "Person",
         "myconstraint",
         "surname"
     );
 
     client.unique_index(
-        "my_apache_graph",
+        "my_apache_graph_07",
         "Person",
         "myconstraint",
         "name"
     );
 
 
-   client.drop_graph("my_apache_graph");
+   client.drop_graph("my_apache_graph_07");
 ```
