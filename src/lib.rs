@@ -6,18 +6,18 @@ mod structures;
 pub use age_client::AgeClient;
 pub use postgres::{Client, NoTls};
 pub use structures::{Edge, Vertex};
+pub use tokio_postgres;
 
 use bytes::BufMut;
 use postgres_types::{to_sql_checked, FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::io::Read;
 
 impl<'a, T> FromSql<'a> for Vertex<T>
 where
     T: Deserialize<'a>,
 {
-    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<Vertex<T>, Box<dyn Error + Sync + Send>> {
+    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<Vertex<T>, Box<dyn std::error::Error + Sync + Send>> {
         if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
             return Err("Only ag_catalog.agtype is supported".into());
         }
@@ -45,7 +45,7 @@ impl<'a, T> FromSql<'a> for Edge<T>
 where
     T: Deserialize<'a>,
 {
-    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<Edge<T>, Box<dyn Error + Sync + Send>> {
+    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<Edge<T>, Box<dyn std::error::Error + Sync + Send>> {
         if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
             return Err("Only ag_catalog.agtype is supported".into());
         }
@@ -86,7 +86,7 @@ where
         &self,
         _ty: &Type,
         out: &mut postgres_types::private::BytesMut,
-    ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>>
+    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>>
     where
         Self: Sized,
     {
@@ -102,7 +102,7 @@ impl<'a, T> FromSql<'a> for AgType<T>
 where
     T: Deserialize<'a>,
 {
-    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<AgType<T>, Box<dyn Error + Sync + Send>> {
+    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<AgType<T>, Box<dyn std::error::Error + Sync + Send>> {
         if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
             return Err("Only ag_catalog.agtype is supported".into());
         }
