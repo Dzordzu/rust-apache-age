@@ -2,7 +2,7 @@
 name = "apache_age"
 description = "Rust driver for the Apache AGE. Based on postgres package"
 license = "Apache-2.0"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 repository = "https://github.com/dzordzu/rust-apache-age.git"
 authors = [ "Tomasz Durda" ]

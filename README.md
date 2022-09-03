@@ -44,7 +44,7 @@ client.drop_graph("my_apache_graph");
 
 ## Links
 
-- [Documentation](https://docs.rs/apache_age/0.1.0/apache_age/)
+- [Documentation](https://docs.rs/apache_age/latest/apache_age/)
 - [Source code](https://github.com/Dzordzu/rust-apache-age)
 
 ## Testing
