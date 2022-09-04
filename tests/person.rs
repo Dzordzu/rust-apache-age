@@ -114,6 +114,13 @@ fn simple_query() {
 fn person() {
     let mut tc = TestConnection::new();
 
+    match tc.client.graph_exists(&tc.graph_name) {
+        Ok(r) => {
+            assert!(r);
+        },
+        Err(_) => assert!(false),
+    }
+
     if let Err(e) = tc.client.execute_cypher(
         &tc.graph_name,
         "CREATE(n: Person {name: $name, surname: $surname})",

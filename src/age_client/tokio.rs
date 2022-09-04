@@ -54,6 +54,7 @@ pub trait AgeClient {
 
     async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
+    async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error>;
     
     /// Exexute cypher query, without any rows to be retured
     async fn execute_cypher<T>(
@@ -254,5 +255,18 @@ impl AgeClient for Client {
             }
         }
 
+    }
+
+    async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error> {
+        match self.query(
+            GRAPH_EXISTS,
+            &[&name.to_string()]
+        ).await {
+            Ok(result) => {
+                let x : i64 = result[0].get(0);
+                return Ok(x == 1)
+            },
+            Err(e) => return Err(e),
+        }
     }
 }

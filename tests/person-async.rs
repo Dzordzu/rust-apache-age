@@ -1,11 +1,10 @@
 #![cfg(feature = "tokio")]
 #![allow(unused_must_use)]
 
-use apache_age::{AgType, NoTls, Vertex};
+use apache_age::{NoTls, Vertex};
 use apache_age::tokio_client::{ AgeClient, Client, JoinHandle};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
-use tokio::time::sleep;
 
 
 const CONN: &'static str = "host=localhost user=postgres password=passwd port=8081";
@@ -116,6 +115,13 @@ async fn simple_query() {
             let qlen = query.len();
             assert_eq!(qlen, 2);
         }
+    }
+
+    match tc.client.graph_exists(&tc.graph_name).await {
+        Ok(r) => {
+            assert!(r);
+        },
+        Err(_) => assert!(false),
     }
 
     tc.client.drop_graph(&tc.graph_name).await;
