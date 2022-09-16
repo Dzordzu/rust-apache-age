@@ -1,16 +1,13 @@
-#[macro_use]
-mod constants;
+use super::constants::*;
 
-#[cfg(feature = "tokio")]
-pub mod tokio;
-
-use constants::*;
-use crate::AgType;
+use crate::age_types::AgType;
 use postgres::{
     tls::{MakeTlsConnect, TlsConnect},
-    Client, Socket,
+    Socket,
 };
 use serde::Serialize;
+
+pub use postgres::Client;
 
 
 /// Handles connecting, configuring and querying graph dbs within postgres instance

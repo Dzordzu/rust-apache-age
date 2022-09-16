@@ -11,8 +11,8 @@ You can see more within `tests` directory
 ## Connecting
 
 ```rust
-   use apache_age::{AgeClient, Client, NoTls};
-
+   use apache_age::NoTls;
+   use apache_age::sync::{Client, AgeClient};
    let mut client = Client::connect_age(
      "host=localhost user=postgres password=passwd port=8081",
      NoTls
@@ -21,7 +21,8 @@ You can see more within `tests` directory
 
 ## Creating/destroying graphs
 ```rust
-   use apache_age::{AgeClient, Client, NoTls};
+   use apache_age::NoTls;
+   use apache_age::sync::{Client, AgeClient};
 
    let mut client = Client::connect_age(
      "host=localhost user=postgres password=passwd port=8081",
@@ -34,7 +35,8 @@ You can see more within `tests` directory
 
 ## Using simple postgres queries
 ```rust
-   use apache_age::{AgeClient, Client, NoTls};
+   use apache_age::NoTls;
+   use apache_age::sync::{Client, AgeClient};
 
    let mut client = Client::connect_age(
      "host=localhost user=postgres password=passwd port=8081",
@@ -54,7 +56,8 @@ You can see more within `tests` directory
 ## Reading rows using simple postgres queries
 
 ```rust
-   use apache_age::{AgeClient, Client, NoTls, Vertex};
+   use apache_age::{NoTls, Vertex};
+   use apache_age::sync::{Client, AgeClient};
    use serde::{Deserialize, Serialize};
 
    let mut client = Client::connect_age(
@@ -92,7 +95,8 @@ You can see more within `tests` directory
 
 With parameters
 ```rust
-   use apache_age::{AgeClient, Client, NoTls, AgType};
+   use apache_age::{NoTls, AgType};
+   use apache_age::sync::{Client, AgeClient};
    use serde::{Deserialize, Serialize};
 
    let mut client = Client::connect_age(
@@ -123,7 +127,8 @@ With parameters
 
 And without
 ```rust
-   use apache_age::{AgeClient, Client, NoTls};
+   use apache_age::NoTls;
+   use apache_age::sync::{Client, AgeClient};
    use serde::{Deserialize, Serialize};
 
    let mut client = Client::connect_age(
@@ -147,7 +152,8 @@ And without
 ## Querying cypher
 
 ```rust
-   use apache_age::{AgeClient, Client, NoTls, AgType};
+   use apache_age::{NoTls, AgType};
+   use apache_age::sync::{Client, AgeClient};
    use serde::{Deserialize, Serialize};
 
    let mut client = Client::connect_age(
@@ -185,7 +191,8 @@ And without
 There is also support for `unique` and `required` constraints. You may see `tests` directory for more examples
 
 ```rust
-   use apache_age::{AgeClient, Client, NoTls, AgType};
+   use apache_age::{NoTls, AgType};
+   use apache_age::sync::{Client, AgeClient};
 
    let mut client = Client::connect_age(
      "host=localhost user=postgres password=passwd port=8081",

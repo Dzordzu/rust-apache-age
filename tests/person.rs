@@ -1,6 +1,8 @@
+#![cfg(feature = "sync")]
 #![allow(unused_must_use)]
 
-use apache_age::{AgType, AgeClient, Client, NoTls, Vertex};
+use apache_age::{AgType, NoTls, Vertex};
+use apache_age::sync::{AgeClient, Client};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 

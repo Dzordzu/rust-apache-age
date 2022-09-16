@@ -2,7 +2,7 @@
 #![allow(unused_must_use)]
 
 use apache_age::{NoTls, Vertex};
-use apache_age::tokio_client::{ AgeClient, Client, JoinHandle};
+use apache_age::tokio::{ AgeClient, Client, JoinHandle};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 
