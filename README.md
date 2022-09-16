@@ -4,6 +4,8 @@
 
 AGE is opensource backend for postgres, that allows user to perform graph related operations on postgres. You can read about it on the [official website](https://age.apache.org/)
 
+This repository will be eventually merged into the [age repository](https://github.com/apache/age). The status of the work needed for PR can be found in [the special issue](https://github.com/apache/age/issues/262) within AGE issue tracker
+
 ## Driver usage
 
 More examples can be find in documentation (link below)
