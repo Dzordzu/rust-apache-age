@@ -11,7 +11,8 @@ This repository will be eventually merged into the [age repository](https://gith
 More examples can be find in documentation (link below)
 
 ```rust
-use apache_age::{AgeClient, Client, NoTls, AgType};
+use apache_age::{NoTls, AgType};
+use apache_age::sync::{AgeClient, Client}; 
 use serde::{Deserialize, Serialize};
 
 let mut client = Client::connect_age(
