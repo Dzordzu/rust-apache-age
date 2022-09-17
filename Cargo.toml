@@ -6,6 +6,7 @@ version = "0.4.2"
 edition = "2021"
 repository = "https://github.com/dzordzu/rust-apache-age.git"
 authors = [ "Tomasz Durda" ]
+categories = ["database"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
