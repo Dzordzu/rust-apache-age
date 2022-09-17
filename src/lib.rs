@@ -10,5 +10,8 @@ pub mod tokio;
 #[cfg(feature = "sync")]
 pub mod sync;
 
+#[cfg(feature = "serializers")]
+pub mod serializers;
+
 pub use postgres::NoTls;
 pub use age_types::{Edge, Vertex, AgType};

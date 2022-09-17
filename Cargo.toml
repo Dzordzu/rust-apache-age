@@ -24,3 +24,4 @@ tokio = { version = "1.21.0", optional = true, features = ["macros"] }
 default = ["sync", "tokio"]
 tokio = ["dep:async-trait", "dep:tokio"]
 sync = []
+serializers = []
