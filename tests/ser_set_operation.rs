@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
 use apache_age::serializers::set_operation::to_string;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 enum Status {
     Active,
-    Closed
+    Closed,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -14,19 +14,16 @@ struct Task {
     pub status: Option<Status>,
 
     // You need to skip serialization when you need to skip some fields
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
     #[serde(skip_serializing)]
     #[allow(dead_code)]
-    pub comment: String
+    pub comment: String,
 }
-
 
 #[test]
 fn test_simple_set() {
-
     let common = Task {
         task_id: 0,
         name: String::new(),

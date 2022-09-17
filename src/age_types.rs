@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use postgres_types::{to_sql_checked, FromSql, IsNull, ToSql, Type};
-use std::io::Read;
 use bytes::BufMut;
+use postgres_types::{to_sql_checked, FromSql, IsNull, ToSql, Type};
+use serde::{Deserialize, Serialize};
+use std::io::Read;
 
 /// Represents vertex within graph. Used during process of vertex deserialization
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,7 +61,10 @@ impl<'a, T> FromSql<'a> for Vertex<T>
 where
     T: Deserialize<'a>,
 {
-    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<Vertex<T>, Box<dyn std::error::Error + Sync + Send>> {
+    fn from_sql(
+        ty: &Type,
+        mut raw: &'a [u8],
+    ) -> Result<Vertex<T>, Box<dyn std::error::Error + Sync + Send>> {
         if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
             return Err("Only ag_catalog.agtype is supported".into());
         }
@@ -89,7 +92,10 @@ impl<'a, T> FromSql<'a> for Edge<T>
 where
     T: Deserialize<'a>,
 {
-    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<Edge<T>, Box<dyn std::error::Error + Sync + Send>> {
+    fn from_sql(
+        ty: &Type,
+        mut raw: &'a [u8],
+    ) -> Result<Edge<T>, Box<dyn std::error::Error + Sync + Send>> {
         if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
             return Err("Only ag_catalog.agtype is supported".into());
         }
@@ -146,7 +152,10 @@ impl<'a, T> FromSql<'a> for AgType<T>
 where
     T: Deserialize<'a>,
 {
-    fn from_sql(ty: &Type, mut raw: &'a [u8]) -> Result<AgType<T>, Box<dyn std::error::Error + Sync + Send>> {
+    fn from_sql(
+        ty: &Type,
+        mut raw: &'a [u8],
+    ) -> Result<AgType<T>, Box<dyn std::error::Error + Sync + Send>> {
         if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
             return Err("Only ag_catalog.agtype is supported".into());
         }

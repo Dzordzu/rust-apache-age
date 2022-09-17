@@ -1,8 +1,8 @@
 #![cfg(feature = "sync")]
 #![allow(unused_must_use)]
 
-use apache_age::{AgType, NoTls, Vertex};
 use apache_age::sync::{AgeClient, Client};
+use apache_age::{AgType, NoTls, Vertex};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 
@@ -21,11 +21,7 @@ impl TestConnection {
     pub fn new() -> Self {
         let (client, graph_name) = connect();
 
-        Self { 
-            client, 
-            graph_name
-
-        }
+        Self { client, graph_name }
     }
 }
 
@@ -119,7 +115,7 @@ fn person() {
     match tc.client.graph_exists(&tc.graph_name) {
         Ok(r) => {
             assert!(r);
-        },
+        }
         Err(_) => assert!(false),
     }
 
@@ -165,7 +161,7 @@ fn person() {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct IdPassing {
-    id: usize
+    id: usize,
 }
 
 #[test]
@@ -175,61 +171,52 @@ fn unique_index() {
     let result = tc.client.query_cypher::<()>(
         &tc.graph_name,
         "CREATE(n: Person {name: 'Dummy', surname: 'Name'}) RETURN id(n)",
-        None
+        None,
     );
 
-    let dummy_person : usize = match result {
-        Ok(rows) => { rows[0].get(0) }
-        Err(_) => { 
-            assert!(false); 
+    let dummy_person: usize = match result {
+        Ok(rows) => rows[0].get(0),
+        Err(_) => {
+            assert!(false);
             AgType::<usize>(0)
         }
-    }.0;
+    }
+    .0;
 
-    tc.client.unique_index(
-        &tc.graph_name,
-        "Person",
-        "myconstraint",
-        "surname"
-    );
-
+    tc.client
+        .unique_index(&tc.graph_name, "Person", "myconstraint", "surname");
 
     tc.client.execute_cypher::<IdPassing>(
-        &tc.graph_name, 
+        &tc.graph_name,
         "MATCH (n: Person) WHERE id(n) = $id DELETE n",
-        Some(AgType::<IdPassing>(IdPassing { id: dummy_person }))
+        Some(AgType::<IdPassing>(IdPassing { id: dummy_person })),
     );
 
-    tc.client.execute_cypher::<()>(
-        &tc.graph_name,
-        "CREATE(n: Person {surname: 'Name'})",
-        None
-    );
+    tc.client
+        .execute_cypher::<()>(&tc.graph_name, "CREATE(n: Person {surname: 'Name'})", None);
 
     match tc.client.execute_cypher::<()>(
         &tc.graph_name,
         "CREATE(n: Person {name: 'Dummy', surname: 'Name'})",
-        None
+        None,
     ) {
         Ok(_) => {
             println!("One must not be able to perform this operation");
             assert!(false);
         }
-        Err(_) => {
-        }
+        Err(_) => {}
     }
 
     match tc.client.execute_cypher::<()>(
         &tc.graph_name,
         "CREATE(n: Person {surname: 'Name'})",
-        None
+        None,
     ) {
         Ok(_) => {
             println!("One must not be able to perform this operation");
             assert!(false);
         }
-        Err(_) => {
-        }
+        Err(_) => {}
     }
 }
 
@@ -240,42 +227,35 @@ fn required_constraint() {
     let result = tc.client.query_cypher::<()>(
         &tc.graph_name,
         "CREATE(n: Person {name: 'Dummy', surname: 'Name'}) RETURN id(n)",
-        None
+        None,
     );
 
-    let dummy_person : usize = match result {
-        Ok(rows) => { rows[0].get(0) }
-        Err(_) => { 
-            assert!(false); 
+    let dummy_person: usize = match result {
+        Ok(rows) => rows[0].get(0),
+        Err(_) => {
+            assert!(false);
             AgType::<usize>(0)
         }
-    }.0;
+    }
+    .0;
 
-    tc.client.required_constraint(
-        &tc.graph_name,
-        "Person",
-        "myconstraint",
-        "surname"
-    );
+    tc.client
+        .required_constraint(&tc.graph_name, "Person", "myconstraint", "surname");
 
     tc.client.execute_cypher::<IdPassing>(
-        &tc.graph_name, 
+        &tc.graph_name,
         "MATCH (n: Person) WHERE id(n) = $id DELETE n",
-        Some(AgType::<IdPassing>(IdPassing { id: dummy_person }))
+        Some(AgType::<IdPassing>(IdPassing { id: dummy_person })),
     );
 
-
-    match tc.client.execute_cypher::<()>(
-        &tc.graph_name,
-        "CREATE(n: Person {name: 'Name'})",
-        None
-    ) {
+    match tc
+        .client
+        .execute_cypher::<()>(&tc.graph_name, "CREATE(n: Person {name: 'Name'})", None)
+    {
         Ok(_) => {
             println!("One must not be able to perform this operation");
             assert!(false);
         }
         Err(_) => {}
     }
-
-
 }

@@ -7,7 +7,9 @@ pub const SET_AGE: &'static str = "SET search_path = ag_catalog, \"$user\", publ
 pub const GRAPH_EXISTS: &'static str = "SELECT COUNT(name) FROM ag_graph WHERE name = $1";
 
 macro_rules! cypher_query {
-    () => { "SELECT * FROM cypher('{}', $$ {} $${}) as (v agtype)" };
+    () => {
+        "SELECT * FROM cypher('{}', $$ {} $${}) as (v agtype)"
+    };
 }
 
 macro_rules! constraint {

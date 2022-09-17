@@ -1,21 +1,24 @@
-use async_trait::async_trait;
 use crate::AgType;
+use async_trait::async_trait;
+use serde::Serialize;
 use tokio_postgres::{
+    connect,
     tls::{MakeTlsConnect, TlsConnect},
     Socket,
-    connect
 };
-use serde::Serialize;
 
 use super::constants::*;
 
-pub use tokio_postgres::Client;
 pub use tokio::task::JoinHandle;
+pub use tokio_postgres::Client;
 
 #[async_trait]
 /// Handles connecting, configuring and querying graph dbs within postgres instance
 pub trait AgeClient {
-    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
+    async fn connect_age<T>(
+        params: &str,
+        tls_mode: T,
+    ) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
     where
         T: MakeTlsConnect<Socket> + 'static + Send,
         T::TlsConnect: Send,
@@ -30,7 +33,7 @@ pub trait AgeClient {
         graph: &str,
         label: &str,
         name: &str,
-        constraint_text: &str
+        constraint_text: &str,
     ) -> Result<u64, postgres::Error>;
 
     /// Create unique index for the certain field for the label within graph
@@ -41,7 +44,7 @@ pub trait AgeClient {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error>;
 
     async fn required_constraint(
@@ -49,13 +52,13 @@ pub trait AgeClient {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error>;
 
     async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error>;
-    
+
     /// Exexute cypher query, without any rows to be retured
     async fn execute_cypher<T>(
         &mut self,
@@ -90,7 +93,6 @@ pub trait AgeClient {
         T: std::marker::Send;
 }
 
-
 #[async_trait]
 impl AgeClient for Client {
     async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
@@ -101,7 +103,10 @@ impl AgeClient for Client {
         self.execute(DROP_GRAPH, &[&name]).await
     }
 
-    async fn connect_age<T>(params: &str, tls_mode: T) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
+    async fn connect_age<T>(
+        params: &str,
+        tls_mode: T,
+    ) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
     where
         T: MakeTlsConnect<Socket> + 'static + Send,
         T::TlsConnect: Send,
@@ -139,26 +144,16 @@ impl AgeClient for Client {
         T: Serialize,
         T: std::fmt::Debug,
         T: std::marker::Sync,
-        T: std::marker::Send
+        T: std::marker::Send,
     {
         match agtype {
             Some(x) => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_ARG);
 
                 self.query(&query, &[&x]).await
             }
             None => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_NO_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_NO_ARG);
 
                 self.query(&query, &[]).await
             }
@@ -170,16 +165,9 @@ impl AgeClient for Client {
         graph: &str,
         label: &str,
         name: &str,
-        constraint_text: &str
+        constraint_text: &str,
     ) -> Result<u64, postgres::Error> {
-        
-        let query = format!(
-            constraint!(),
-            graph,
-            label,
-            name,
-            constraint_text
-        );
+        let query = format!(constraint!(), graph, label, name, constraint_text);
 
         self.execute(&query, &[]).await
     }
@@ -189,15 +177,9 @@ impl AgeClient for Client {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error> {
-        let query = format!(
-            unique_index!(),
-            name,
-            graph,
-            label,
-            field
-        );
+        let query = format!(unique_index!(), name, graph, label, field);
 
         self.execute(&query, &[]).await
     }
@@ -207,17 +189,10 @@ impl AgeClient for Client {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error> {
-        self.constraint(
-            graph, 
-            label, 
-            name, 
-            &format!(
-                required_constraint!(), 
-                field
-            )
-        ).await
+        self.constraint(graph, label, name, &format!(required_constraint!(), field))
+            .await
     }
 
     async fn execute_cypher<T>(
@@ -234,38 +209,24 @@ impl AgeClient for Client {
     {
         match agtype {
             Some(x) => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_ARG);
 
                 self.execute(&query, &[&x]).await
             }
             None => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_NO_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_NO_ARG);
 
                 self.execute(&query, &[]).await
             }
         }
-
     }
 
     async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error> {
-        match self.query(
-            GRAPH_EXISTS,
-            &[&name.to_string()]
-        ).await {
+        match self.query(GRAPH_EXISTS, &[&name.to_string()]).await {
             Ok(result) => {
-                let x : i64 = result[0].get(0);
-                return Ok(x == 1)
-            },
+                let x: i64 = result[0].get(0);
+                return Ok(x == 1);
+            }
             Err(e) => return Err(e),
         }
     }

@@ -7,8 +7,7 @@ use postgres::{
 };
 use serde::Serialize;
 
-pub use postgres::Client;
-
+pub use postgres::{Client, Statement};
 
 /// Handles connecting, configuring and querying graph dbs within postgres instance
 pub trait AgeClient {
@@ -27,7 +26,7 @@ pub trait AgeClient {
         graph: &str,
         label: &str,
         name: &str,
-        constraint_text: &str
+        constraint_text: &str,
     ) -> Result<u64, postgres::Error>;
 
     /// Create unique index for the certain field for the label within graph
@@ -38,7 +37,7 @@ pub trait AgeClient {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error>;
 
     fn required_constraint(
@@ -46,13 +45,13 @@ pub trait AgeClient {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error>;
 
     fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
     fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error>;
-    
+
     /// Exexute cypher query, without any rows to be retured
     fn execute_cypher<T>(
         &mut self,
@@ -83,6 +82,18 @@ pub trait AgeClient {
         T: Serialize,
         T: std::fmt::Debug,
         T: std::marker::Sync;
+
+    /// Prepare cypher query for future use
+    fn prepare_cypher<T>(
+        &mut self,
+        graph: &str,
+        cypher: &str,
+        use_arg: bool,
+    ) -> Result<Statement, postgres::Error>
+    where
+        T: Serialize,
+        T: std::fmt::Debug,
+        T: std::marker::Sync;
 }
 
 impl AgeClient for Client {
@@ -107,27 +118,16 @@ impl AgeClient for Client {
     {
         match agtype {
             Some(x) => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_ARG);
 
                 self.execute(&query, &[&x])
             }
             None => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_NO_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_NO_ARG);
 
                 self.execute(&query, &[])
             }
         }
-
     }
 
     fn connect_age<T>(params: &str, tls_mode: T) -> Result<Client, postgres::Error>
@@ -140,10 +140,7 @@ impl AgeClient for Client {
         let new_connection = Client::connect(params, tls_mode);
 
         if let Ok(mut client) = new_connection {
-            for query in [
-                client.simple_query(LOAD_AGE),
-                client.simple_query(SET_AGE),
-            ] {
+            for query in [client.simple_query(LOAD_AGE), client.simple_query(SET_AGE)] {
                 if let Err(err) = query {
                     return Err(err);
                 };
@@ -167,22 +164,12 @@ impl AgeClient for Client {
     {
         match agtype {
             Some(x) => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_ARG);
 
                 self.query(&query, &[&x])
             }
             None => {
-                let query = format!(
-                    cypher_query!(),
-                    graph, 
-                    cypher,
-                    CQ_NO_ARG
-                );
+                let query = format!(cypher_query!(), graph, cypher, CQ_NO_ARG);
 
                 self.query(&query, &[])
             }
@@ -194,16 +181,9 @@ impl AgeClient for Client {
         graph: &str,
         label: &str,
         name: &str,
-        constraint_text: &str
+        constraint_text: &str,
     ) -> Result<u64, postgres::Error> {
-        
-        let query = format!(
-            constraint!(),
-            graph,
-            label,
-            name,
-            constraint_text
-        );
+        let query = format!(constraint!(), graph, label, name, constraint_text);
 
         self.execute(&query, &[])
     }
@@ -213,15 +193,9 @@ impl AgeClient for Client {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error> {
-        let query = format!(
-            unique_index!(),
-            name,
-            graph,
-            label,
-            field
-        );
+        let query = format!(unique_index!(), name, graph, label, field);
 
         self.execute(&query, &[])
     }
@@ -231,30 +205,36 @@ impl AgeClient for Client {
         graph: &str,
         label: &str,
         name: &str,
-        field: &str
+        field: &str,
     ) -> Result<u64, postgres::Error> {
-        self.constraint(
-            graph, 
-            label, 
-            name, 
-            &format!(
-                required_constraint!(), 
-                field
-            )
-        )
+        self.constraint(graph, label, name, &format!(required_constraint!(), field))
     }
 
     fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error> {
-        match self.query(
-            GRAPH_EXISTS,
-            &[&name.to_string()]
-        ) {
+        match self.query(GRAPH_EXISTS, &[&name.to_string()]) {
             Ok(result) => {
-                let x : i64 = result[0].get(0);
-                return Ok(x == 1)
-            },
+                let x: i64 = result[0].get(0);
+                return Ok(x == 1);
+            }
             Err(e) => return Err(e),
         }
     }
 
+    fn prepare_cypher<T>(
+        &mut self,
+        graph: &str,
+        cypher: &str,
+        use_arg: bool,
+    ) -> Result<Statement, postgres::Error>
+    where
+        T: Serialize,
+        T: std::fmt::Debug,
+        T: std::marker::Sync,
+    {
+        let cypher_arg = if use_arg { CQ_ARG } else { CQ_NO_ARG };
+
+        let query = format!(cypher_query!(), graph, cypher, cypher_arg);
+
+        self.prepare(&query)
+    }
 }
