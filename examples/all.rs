@@ -93,6 +93,22 @@ pub fn main() {
         }
     }
 
+    // Prepared statements
+    let statement = client.prepare_cypher(
+        "my_apache_graph",
+        "MATCH (n: Person) WHERE n.name = 'John' RETURN n",
+        false
+    ).unwrap();
+
+    match client.query(&statement, &[]) {
+        Ok(x) => {
+            let john_doe : Vertex<Person> = x[0].get(0);
+            assert_eq!(john_doe.properties().surname, "Doe");
+
+        },
+        Err(_) => assert!(false),
+    }
+
     // Constraints
     client
         .required_constraint("my_apache_graph", "Person", "myconstraint", "surname")
