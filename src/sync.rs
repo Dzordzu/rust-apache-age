@@ -7,7 +7,7 @@ use postgres::{
 };
 use serde::Serialize;
 
-pub use postgres::{Client, Statement};
+pub use postgres::{Client, Statement, Error};
 
 /// Handles connecting, configuring and querying graph dbs within postgres instance
 pub trait AgeClient {

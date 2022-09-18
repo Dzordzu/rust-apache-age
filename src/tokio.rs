@@ -10,7 +10,7 @@ use tokio_postgres::{
 use super::constants::*;
 
 pub use tokio::task::JoinHandle;
-pub use tokio_postgres::{Client, Statement};
+pub use tokio_postgres::{Client, Statement, Error};
 
 #[async_trait]
 /// Handles connecting, configuring and querying graph dbs within postgres instance
