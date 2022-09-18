@@ -10,7 +10,7 @@ use tokio_postgres::{
 use super::constants::*;
 
 pub use tokio::task::JoinHandle;
-pub use tokio_postgres::Client;
+pub use tokio_postgres::{Client, Statement};
 
 #[async_trait]
 /// Handles connecting, configuring and querying graph dbs within postgres instance
@@ -91,6 +91,17 @@ pub trait AgeClient {
         T: std::fmt::Debug,
         T: std::marker::Sync,
         T: std::marker::Send;
+
+    /// Prepare cypher query for future use
+    /// ```
+    #[doc = include_str!("../examples/prepared_statements_async.rs")]
+    /// ```
+    async fn prepare_cypher(
+        &mut self,
+        graph: &str,
+        cypher: &str,
+        use_arg: bool,
+    ) -> Result<Statement, postgres::Error>;
 }
 
 #[async_trait]
@@ -229,5 +240,18 @@ impl AgeClient for Client {
             }
             Err(e) => return Err(e),
         }
+    }
+
+    async fn prepare_cypher(
+        &mut self,
+        graph: &str,
+        cypher: &str,
+        use_arg: bool,
+    ) -> Result<Statement, postgres::Error>
+    {
+        let cypher_arg = if use_arg { CQ_ARG } else { CQ_NO_ARG };
+        let query = format!(cypher_query!(), graph, cypher, cypher_arg);
+
+        self.prepare(&query).await
     }
 }

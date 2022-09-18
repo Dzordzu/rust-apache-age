@@ -84,16 +84,15 @@ pub trait AgeClient {
         T: std::marker::Sync;
 
     /// Prepare cypher query for future use
-    fn prepare_cypher<T>(
+    /// ```
+    #[doc = include_str!("../examples/prepared_statements.rs")]
+    /// ```
+    fn prepare_cypher(
         &mut self,
         graph: &str,
         cypher: &str,
         use_arg: bool,
-    ) -> Result<Statement, postgres::Error>
-    where
-        T: Serialize,
-        T: std::fmt::Debug,
-        T: std::marker::Sync;
+    ) -> Result<Statement, postgres::Error>;
 }
 
 impl AgeClient for Client {
@@ -220,19 +219,14 @@ impl AgeClient for Client {
         }
     }
 
-    fn prepare_cypher<T>(
+    fn prepare_cypher(
         &mut self,
         graph: &str,
         cypher: &str,
         use_arg: bool,
     ) -> Result<Statement, postgres::Error>
-    where
-        T: Serialize,
-        T: std::fmt::Debug,
-        T: std::marker::Sync,
     {
         let cypher_arg = if use_arg { CQ_ARG } else { CQ_NO_ARG };
-
         let query = format!(cypher_query!(), graph, cypher, cypher_arg);
 
         self.prepare(&query)
