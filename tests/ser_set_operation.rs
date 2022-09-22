@@ -1,3 +1,4 @@
+#![cfg(feature = "serializers")]
 use apache_age::serializers::set_operation::to_string;
 use serde::{Deserialize, Serialize};
 

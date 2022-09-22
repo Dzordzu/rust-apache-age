@@ -7,7 +7,7 @@ use postgres::{
 };
 use serde::Serialize;
 
-pub use postgres::{Client, Statement, Error};
+pub use postgres::{Client, Error, Statement};
 
 /// Handles connecting, configuring and querying graph dbs within postgres instance
 pub trait AgeClient {
@@ -140,9 +140,7 @@ impl AgeClient for Client {
 
         if let Ok(mut client) = new_connection {
             for query in [client.simple_query(LOAD_AGE), client.simple_query(SET_AGE)] {
-                if let Err(err) = query {
-                    return Err(err);
-                };
+                query?;
             }
             Ok(client)
         } else {
@@ -213,9 +211,9 @@ impl AgeClient for Client {
         match self.query(GRAPH_EXISTS, &[&name.to_string()]) {
             Ok(result) => {
                 let x: i64 = result[0].get(0);
-                return Ok(x == 1);
+                Ok(x == 1)
             }
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 
@@ -224,8 +222,7 @@ impl AgeClient for Client {
         graph: &str,
         cypher: &str,
         use_arg: bool,
-    ) -> Result<Statement, postgres::Error>
-    {
+    ) -> Result<Statement, postgres::Error> {
         let cypher_arg = if use_arg { CQ_ARG } else { CQ_NO_ARG };
         let query = format!(cypher_query!(), graph, cypher, cypher_arg);
 

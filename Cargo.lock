@@ -7,6 +7,7 @@ name = "apache_age"
 version = "0.5.2"
 dependencies = [
  "async-trait",
+ "async-trait-with-sync",
  "bytes",
  "postgres",
  "postgres-types",
@@ -22,6 +23,17 @@ name = "async-trait"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76464446b8bc32758d7e88ee1a804d9914cd9b1cb264c029899680b0be29826f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "async-trait-with-sync"
+version = "0.1.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3384e2b7d27f0c02fd4d3b94f8bb42564b2f860f149c83341edc512ce1ea4ee"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -210,15 +222,15 @@ checksum = "6c8af84674fe1f223a982c933a0ee1086ac4d4052aa0fb8060c12c6ad838e754"
 
 [[package]]
 name = "libc"
-version = "0.2.132"
+version = "0.2.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
+checksum = "c0f80d65747a3e43d1596c7c5492d95d5edddaabd45a7fcdb02b95f644164966"
 
 [[package]]
 name = "lock_api"
-version = "0.4.8"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f80bf5aacaf25cbfc8210d1cfb718f2bf3b11c4c54e5afe36c236853a8ec390"
+checksum = "435011366fe56583b16cf956f9df0095b405b82d76425bc8981c0e22e60ec4df"
 dependencies = [
  "autocfg",
  "scopeguard",
@@ -235,9 +247,9 @@ dependencies = [
 
 [[package]]
 name = "md-5"
-version = "0.10.4"
+version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66b48670c893079d3c2ed79114e3644b7004df1c361a4e0ad52e2e6940d07c3d"
+checksum = "6365506850d44bff6e2fbcb5176cf63650e48bd45ef2fe2665ae1570e0f4b9ca"
 dependencies = [
  "digest",
 ]
@@ -272,9 +284,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.14.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f7254b99e31cad77da24b08ebf628882739a608578bb1bcdfc1f9c21260d7c0"
+checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
 
 [[package]]
 name = "parking_lot"
@@ -338,8 +350,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "postgres"
 version = "0.19.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "960c214283ef8f0027974c03e9014517ced5db12f021a9abb66185a5751fab0a"
+source = "git+https://github.com/Dzordzu/rust-postgres.git?branch=future-sync#d6e18049e024ac6ee93f8d90164a22a2f9fd965e"
 dependencies = [
  "bytes",
  "fallible-iterator",
@@ -352,8 +363,7 @@ dependencies = [
 [[package]]
 name = "postgres-derive"
 version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e76c801e97c9cf696097369e517785b98056e98b21149384c812febfc5912f2"
+source = "git+https://github.com/Dzordzu/rust-postgres.git?branch=future-sync#d6e18049e024ac6ee93f8d90164a22a2f9fd965e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -363,8 +373,7 @@ dependencies = [
 [[package]]
 name = "postgres-protocol"
 version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "878c6cbf956e03af9aa8204b407b9cbf47c072164800aa918c516cd4b056c50c"
+source = "git+https://github.com/Dzordzu/rust-postgres.git?branch=future-sync#d6e18049e024ac6ee93f8d90164a22a2f9fd965e"
 dependencies = [
  "base64",
  "byteorder",
@@ -381,8 +390,7 @@ dependencies = [
 [[package]]
 name = "postgres-types"
 version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73d946ec7d256b04dfadc4e6a3292324e6f417124750fc5c0950f981b703a0f1"
+source = "git+https://github.com/Dzordzu/rust-postgres.git?branch=future-sync#d6e18049e024ac6ee93f8d90164a22a2f9fd965e"
 dependencies = [
  "bytes",
  "fallible-iterator",
@@ -469,18 +477,18 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "serde"
-version = "1.0.144"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f747710de3dcd43b88c9168773254e809d8ddbdf9653b84e2554ab219f17860"
+checksum = "728eb6351430bccb993660dfffc5a72f91ccc1295abaa8ce19b27ebe4f75568b"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.144"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94ed3a816fb1d101812f83e789f888322c34e291f894f19590dc310963e87a00"
+checksum = "81fa1584d3d1bcacd84c277a0dfe21f5b0f6accf4a23d04d4c6d61f1af522b4c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -558,9 +566,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.99"
+version = "1.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58dbef6ec655055e20b86b15a8cc6d439cca19b667537ac6a1369572d151ab13"
+checksum = "52205623b1b0f064a4e71182c3b18ae902267282930c6d5462c91b859668426e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -615,8 +623,7 @@ dependencies = [
 [[package]]
 name = "tokio-postgres"
 version = "0.7.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29a12c1b3e0704ae7dfc25562629798b29c72e6b1d0a681b6f29ab4ae5e7f7bf"
+source = "git+https://github.com/Dzordzu/rust-postgres.git?branch=future-sync#d6e18049e024ac6ee93f8d90164a22a2f9fd965e"
 dependencies = [
  "async-trait",
  "byteorder",

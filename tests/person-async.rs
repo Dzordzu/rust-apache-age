@@ -6,7 +6,7 @@ use apache_age::{NoTls, Vertex};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 
-const CONN: &'static str = "host=localhost user=postgres password=passwd port=8081";
+const CONN: &str = "host=localhost user=postgres password=passwd port=8081";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Person {

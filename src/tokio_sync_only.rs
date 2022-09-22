@@ -1,5 +1,5 @@
 use crate::AgType;
-use async_trait::async_trait;
+use async_trait_with_sync::async_trait;
 use serde::Serialize;
 use tokio_postgres::{
     connect,
@@ -9,21 +9,23 @@ use tokio_postgres::{
 
 use super::constants::*;
 
+use std::sync::Arc;
+use tokio::sync::Mutex;
 pub use tokio::task::JoinHandle;
 pub use tokio_postgres::{Client, Error, Statement};
 
-#[async_trait]
+#[async_trait(Sync)]
 /// Handles connecting, configuring and querying graph dbs within postgres instance
-pub trait AgeClient {
+pub trait AgeClient: Sync {
     async fn connect_age<T>(
         params: &str,
         tls_mode: T,
-    ) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
+    ) -> Arc<Mutex<Result<(Client, JoinHandle<()>), tokio_postgres::Error>>>
     where
-        T: MakeTlsConnect<Socket> + 'static + Send,
-        T::TlsConnect: Send,
-        T::Stream: Send,
-        <T::TlsConnect as TlsConnect<Socket>>::Future: Send;
+        T: MakeTlsConnect<Socket> + 'static + Send + Sync,
+        T::TlsConnect: Send + Sync,
+        T::Stream: Send + Sync,
+        <T::TlsConnect as TlsConnect<Socket>>::Future: Send + Sync;
 
     /// Create a new constraint for the certain label within graph
     ///
@@ -34,7 +36,7 @@ pub trait AgeClient {
         label: &str,
         name: &str,
         constraint_text: &str,
-    ) -> Result<u64, postgres::Error>;
+    ) -> Arc<Result<u64, postgres::Error>>;
 
     /// Create unique index for the certain field for the label within graph
     ///
@@ -45,7 +47,7 @@ pub trait AgeClient {
         label: &str,
         name: &str,
         field: &str,
-    ) -> Result<u64, postgres::Error>;
+    ) -> Arc<Result<u64, postgres::Error>>;
 
     async fn required_constraint(
         &mut self,
@@ -53,11 +55,11 @@ pub trait AgeClient {
         label: &str,
         name: &str,
         field: &str,
-    ) -> Result<u64, postgres::Error>;
+    ) -> Arc<Result<u64, postgres::Error>>;
 
-    async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
-    async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
-    async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error>;
+    async fn create_graph(&mut self, name: &str) -> Arc<Result<u64, postgres::Error>>;
+    async fn drop_graph(&mut self, name: &str) -> Arc<Result<u64, postgres::Error>>;
+    async fn graph_exists(&mut self, name: &str) -> Arc<Result<bool, postgres::Error>>;
 
     /// Exexute cypher query, without any rows to be retured
     async fn execute_cypher<T>(
@@ -65,7 +67,7 @@ pub trait AgeClient {
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
-    ) -> Result<u64, postgres::Error>
+    ) -> Arc<Result<u64, postgres::Error>>
     where
         T: Serialize,
         T: std::fmt::Debug,
@@ -85,7 +87,7 @@ pub trait AgeClient {
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
-    ) -> Result<Vec<postgres::Row>, postgres::Error>
+    ) -> Arc<Result<Vec<postgres::Row>, postgres::Error>>
     where
         T: Serialize,
         T: std::fmt::Debug,
@@ -93,38 +95,38 @@ pub trait AgeClient {
         T: std::marker::Send;
 
     /// Prepare cypher query for future use
-    /// ```
-    #[doc = include_str!("../examples/prepared_statements_async.rs")]
-    /// ```
     async fn prepare_cypher(
         &mut self,
         graph: &str,
         cypher: &str,
         use_arg: bool,
-    ) -> Result<Statement, postgres::Error>;
+    ) -> Arc<Result<Statement, postgres::Error>>;
 }
 
-#[async_trait]
+#[async_trait(Sync)]
 impl AgeClient for Client {
-    async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
-        self.execute(CREATE_GRAPH, &[&name]).await
+    async fn create_graph(&mut self, name: &str) -> Arc<Result<u64, postgres::Error>> {
+        Arc::new(self.execute(CREATE_GRAPH, &[&name]).await)
     }
 
-    async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
-        self.execute(DROP_GRAPH, &[&name]).await
+    async fn drop_graph(&mut self, name: &str) -> Arc<Result<u64, postgres::Error>> {
+        Arc::new(self.execute(DROP_GRAPH, &[&name]).await)
     }
 
     async fn connect_age<T>(
         params: &str,
         tls_mode: T,
-    ) -> Result<(Client, JoinHandle<()>), tokio_postgres::Error>
+    ) -> Arc<Mutex<Result<(Client, JoinHandle<()>), tokio_postgres::Error>>>
     where
-        T: MakeTlsConnect<Socket> + 'static + Send,
-        T::TlsConnect: Send,
-        T::Stream: Send,
-        <T::TlsConnect as TlsConnect<Socket>>::Future: Send,
+        T: MakeTlsConnect<Socket> + 'static + Send + Sync,
+        T::TlsConnect: Send + Sync,
+        T::Stream: Send + Sync,
+        <T::TlsConnect as TlsConnect<Socket>>::Future: Send + Sync,
     {
-        let new_connection = connect(params, tls_mode).await?;
+        let new_connection = match connect(params, tls_mode).await {
+            Ok(x) => x,
+            Err(e) => return Arc::new(Mutex::new(Err(e))),
+        };
 
         let (client, connection) = new_connection;
 
@@ -138,9 +140,11 @@ impl AgeClient for Client {
             client.simple_query(LOAD_AGE).await,
             client.simple_query(SET_AGE).await,
         ] {
-            query?;
+            if let Err(err) = query {
+                return Arc::new(Mutex::new(Err(err)));
+            };
         }
-        Ok((client, handle))
+        Arc::new(Mutex::new(Ok((client, handle))))
     }
 
     async fn query_cypher<T>(
@@ -148,25 +152,25 @@ impl AgeClient for Client {
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
-    ) -> Result<Vec<postgres::Row>, postgres::Error>
+    ) -> Arc<Result<Vec<postgres::Row>, postgres::Error>>
     where
         T: Serialize,
         T: std::fmt::Debug,
         T: std::marker::Sync,
         T: std::marker::Send,
     {
-        match agtype {
+        let query_result = match agtype {
             Some(x) => {
                 let query = format!(cypher_query!(), graph, cypher, CQ_ARG);
-
                 self.query(&query, &[&x]).await
             }
             None => {
                 let query = format!(cypher_query!(), graph, cypher, CQ_NO_ARG);
-
                 self.query(&query, &[]).await
             }
-        }
+        };
+
+        Arc::new(query_result)
     }
 
     async fn constraint(
@@ -175,10 +179,10 @@ impl AgeClient for Client {
         label: &str,
         name: &str,
         constraint_text: &str,
-    ) -> Result<u64, postgres::Error> {
+    ) -> Arc<Result<u64, postgres::Error>> {
         let query = format!(constraint!(), graph, label, name, constraint_text);
 
-        self.execute(&query, &[]).await
+        Arc::new(self.execute(&query, &[]).await)
     }
 
     async fn unique_index(
@@ -187,10 +191,10 @@ impl AgeClient for Client {
         label: &str,
         name: &str,
         field: &str,
-    ) -> Result<u64, postgres::Error> {
+    ) -> Arc<Result<u64, postgres::Error>> {
         let query = format!(unique_index!(), name, graph, label, field);
 
-        self.execute(&query, &[]).await
+        Arc::new(self.execute(&query, &[]).await)
     }
 
     async fn required_constraint(
@@ -199,7 +203,7 @@ impl AgeClient for Client {
         label: &str,
         name: &str,
         field: &str,
-    ) -> Result<u64, postgres::Error> {
+    ) -> Arc<Result<u64, postgres::Error>> {
         self.constraint(graph, label, name, &format!(required_constraint!(), field))
             .await
     }
@@ -209,14 +213,14 @@ impl AgeClient for Client {
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
-    ) -> Result<u64, postgres::Error>
+    ) -> Arc<Result<u64, postgres::Error>>
     where
         T: Serialize,
         T: std::fmt::Debug,
         T: std::marker::Sync,
         T: std::marker::Send,
     {
-        match agtype {
+        Arc::new(match agtype {
             Some(x) => {
                 let query = format!(cypher_query!(), graph, cypher, CQ_ARG);
 
@@ -227,16 +231,16 @@ impl AgeClient for Client {
 
                 self.execute(&query, &[]).await
             }
-        }
+        })
     }
 
-    async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error> {
+    async fn graph_exists(&mut self, name: &str) -> Arc<Result<bool, postgres::Error>> {
         match self.query(GRAPH_EXISTS, &[&name.to_string()]).await {
             Ok(result) => {
                 let x: i64 = result[0].get(0);
-                return Ok(x == 1);
+                return Arc::new(Ok(x == 1));
             }
-            Err(e) => return Err(e),
+            Err(e) => return Arc::new(Err(e)),
         }
     }
 
@@ -245,10 +249,13 @@ impl AgeClient for Client {
         graph: &str,
         cypher: &str,
         use_arg: bool,
-    ) -> Result<Statement, postgres::Error> {
+    ) -> Arc<Result<Statement, postgres::Error>> {
         let cypher_arg = if use_arg { CQ_ARG } else { CQ_NO_ARG };
         let query = format!(cypher_query!(), graph, cypher, cypher_arg);
 
-        self.prepare(&query).await
+        Arc::new(match self.prepare(&query).await {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x),
+        })
     }
 }
