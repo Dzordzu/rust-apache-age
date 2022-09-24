@@ -4,10 +4,9 @@ version = 3
 
 [[package]]
 name = "apache_age"
-version = "0.5.2"
+version = "0.5.4"
 dependencies = [
  "async-trait",
- "async-trait-with-sync",
  "bytes",
  "postgres",
  "postgres-types",
@@ -23,17 +22,6 @@ name = "async-trait"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76464446b8bc32758d7e88ee1a804d9914cd9b1cb264c029899680b0be29826f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "async-trait-with-sync"
-version = "0.1.36"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3384e2b7d27f0c02fd4d3b94f8bb42564b2f860f149c83341edc512ce1ea4ee"
 dependencies = [
  "proc-macro2",
  "quote",

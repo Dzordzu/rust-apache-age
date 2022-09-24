@@ -53,9 +53,5 @@ pub mod tokio;
 #[cfg(feature = "serializers")]
 pub mod serializers;
 
-/// Used for the asynchronous age connection with results behind arc / arc mutex. Requires `tokio-arc` feature
-#[cfg(feature = "tokio-sync-only")]
-pub mod tokio_sync_only;
-
 pub use age_types::{AgType, Edge, Vertex};
 pub use postgres::NoTls;
