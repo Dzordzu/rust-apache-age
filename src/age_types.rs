@@ -73,6 +73,10 @@ impl<V, E> Path<V, E> {
     }
 }
 
+const VERTEX_SUFFIX: &[u8] = "::vertex".as_bytes();
+const EDGE_SUFFIX: &[u8] = "::edge".as_bytes();
+const PATH_SUFFIX: &[u8] = "::path".as_bytes();
+
 impl<'a, T> FromSql<'a> for Vertex<T>
 where
     T: Deserialize<'a>,
@@ -158,9 +162,7 @@ where
             return Err("unsupported JSONB encoding version".into());
         }
 
-        if !(&raw[0..2] == "[{".as_bytes()
-            && &raw[raw.len() - 7..raw.len()] == "]::path".as_bytes())
-        {
+        if !(raw[0] == "[".as_bytes()[0] && &raw[raw.len() - 6..] == PATH_SUFFIX) {
             return Err("Invalid path definition".into());
         }
 
@@ -172,12 +174,12 @@ where
         for (i, b) in raw[..raw.len() - 7].iter().enumerate() {
             if *b as char == '{' && first_open_bracket == raw.len() {
                 first_open_bracket = i;
-            } else if &raw[i..i + 8] == "::vertex".as_bytes() {
+            } else if &raw[i..i + 8] == VERTEX_SUFFIX {
                 let v =
                     serde_json::de::from_slice::<Vertex<V>>(&raw[first_open_bracket..i]).unwrap();
                 vertices.push(v);
                 first_open_bracket = raw.len();
-            } else if &raw[i..i + 6] == "::edge".as_bytes() {
+            } else if &raw[i..i + 6] == EDGE_SUFFIX {
                 let e = serde_json::de::from_slice::<Edge<E>>(&raw[first_open_bracket..i]).unwrap();
                 edges.push(e);
                 first_open_bracket = raw.len();
