@@ -53,5 +53,5 @@ pub mod tokio;
 #[cfg(feature = "serializers")]
 pub mod serializers;
 
-pub use age_types::{AgType, Edge, Vertex};
+pub use age_types::{AgType, Edge, Path, Vertex};
 pub use postgres::NoTls;
