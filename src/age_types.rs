@@ -77,6 +77,11 @@ const VERTEX_SUFFIX: &[u8] = "::vertex".as_bytes();
 const EDGE_SUFFIX: &[u8] = "::edge".as_bytes();
 const PATH_SUFFIX: &[u8] = "::path".as_bytes();
 
+const VERTEX_SUFFIX_LEN: usize = 8;
+const EDGE_SUFFIX_LEN: usize = 6;
+const PATH_SUFFIX_LEN: usize = 6;
+
+
 impl<'a, T> FromSql<'a> for Vertex<T>
 where
     T: Deserialize<'a>,
@@ -98,7 +103,7 @@ where
         }
 
         // Remove ::vertex from bytes
-        let raw_splitted = raw.split_at(raw.len() - 8).0;
+        let raw_splitted = raw.split_at(raw.len() - VERTEX_SUFFIX_LEN).0;
 
         serde_json::de::from_slice::<Vertex<T>>(raw_splitted).map_err(Into::into)
     }
@@ -129,7 +134,7 @@ where
         }
 
         // Remove ::edge from bytes
-        let raw_splitted = raw.split_at(raw.len() - 6).0;
+        let raw_splitted = raw.split_at(raw.len() - EDGE_SUFFIX_LEN).0;
 
         serde_json::de::from_slice::<Edge<T>>(raw_splitted).map_err(Into::into)
     }
@@ -162,7 +167,7 @@ where
             return Err("unsupported JSONB encoding version".into());
         }
 
-        if !(raw[0] == "[".as_bytes()[0] && &raw[raw.len() - 6..] == PATH_SUFFIX) {
+        if !(raw[0] == "[".as_bytes()[0] && &raw[raw.len() - PATH_SUFFIX_LEN..] == PATH_SUFFIX) {
             return Err("Invalid path definition".into());
         }
 
@@ -171,15 +176,15 @@ where
 
         let mut first_open_bracket = raw.len();
 
-        for (i, character) in raw[..raw.len() - 7].iter().enumerate() {
+        for (i, character) in raw[..raw.len() - PATH_SUFFIX_LEN - 1].iter().enumerate() {
             if *character as char == '{' && first_open_bracket == raw.len() {
                 first_open_bracket = i;
-            } else if &raw[i..i + 8] == VERTEX_SUFFIX {
+            } else if &raw[i..i + VERTEX_SUFFIX_LEN] == VERTEX_SUFFIX {
                 let vertex =
                     serde_json::de::from_slice::<Vertex<V>>(&raw[first_open_bracket..i]).unwrap();
                 vertices.push(vertex);
                 first_open_bracket = raw.len();
-            } else if &raw[i..i + 6] == EDGE_SUFFIX {
+            } else if &raw[i..i + EDGE_SUFFIX_LEN] == EDGE_SUFFIX {
                 let edge = serde_json::de::from_slice::<Edge<E>>(&raw[first_open_bracket..i]).unwrap();
                 edges.push(edge);
                 first_open_bracket = raw.len();
