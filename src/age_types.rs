@@ -171,17 +171,17 @@ where
 
         let mut first_open_bracket = raw.len();
 
-        for (i, b) in raw[..raw.len() - 7].iter().enumerate() {
-            if *b as char == '{' && first_open_bracket == raw.len() {
+        for (i, character) in raw[..raw.len() - 7].iter().enumerate() {
+            if *character as char == '{' && first_open_bracket == raw.len() {
                 first_open_bracket = i;
             } else if &raw[i..i + 8] == VERTEX_SUFFIX {
-                let v =
+                let vertex =
                     serde_json::de::from_slice::<Vertex<V>>(&raw[first_open_bracket..i]).unwrap();
-                vertices.push(v);
+                vertices.push(vertex);
                 first_open_bracket = raw.len();
             } else if &raw[i..i + 6] == EDGE_SUFFIX {
-                let e = serde_json::de::from_slice::<Edge<E>>(&raw[first_open_bracket..i]).unwrap();
-                edges.push(e);
+                let edge = serde_json::de::from_slice::<Edge<E>>(&raw[first_open_bracket..i]).unwrap();
+                edges.push(edge);
                 first_open_bracket = raw.len();
             }
         }
