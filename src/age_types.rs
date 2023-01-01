@@ -81,7 +81,6 @@ const VERTEX_SUFFIX_LEN: usize = 8;
 const EDGE_SUFFIX_LEN: usize = 6;
 const PATH_SUFFIX_LEN: usize = 6;
 
-
 impl<'a, T> FromSql<'a> for Vertex<T>
 where
     T: Deserialize<'a>,
@@ -179,14 +178,21 @@ where
             if *character as char == '{' && first_open_bracket == raw.len() {
                 first_open_bracket = i;
             } else if &raw[i..i + VERTEX_SUFFIX_LEN] == VERTEX_SUFFIX {
-                let vertex =
-                    serde_json::de::from_slice::<Vertex<V>>(&raw[first_open_bracket..i]).unwrap();
-                vertices.push(vertex);
-                first_open_bracket = raw.len();
+                match serde_json::de::from_slice::<Vertex<V>>(&raw[first_open_bracket..i]) {
+                    Ok(vertex) => {
+                        vertices.push(vertex);
+                        first_open_bracket = raw.len();
+                    }
+                    Err(e) => return Err(e.into()),
+                };
             } else if &raw[i..i + EDGE_SUFFIX_LEN] == EDGE_SUFFIX {
-                let edge = serde_json::de::from_slice::<Edge<E>>(&raw[first_open_bracket..i]).unwrap();
-                edges.push(edge);
-                first_open_bracket = raw.len();
+                match serde_json::de::from_slice::<Edge<E>>(&raw[first_open_bracket..i]) {
+                    Ok(edge) => {
+                        edges.push(edge);
+                        first_open_bracket = raw.len();
+                    }
+                    Err(e) => return Err(e.into()),
+                };
             }
         }
         Ok(Path { vertices, edges })
