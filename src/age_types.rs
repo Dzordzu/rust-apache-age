@@ -145,7 +145,6 @@ where
 }
 
 /// Represents path in graph. Used during process of path deserialization
-// Supporting "only" <V, E> generic types implies that we should use enums to represent these types.
 impl<'a, V, E> FromSql<'a> for Path<V, E>
 where
     V: Deserialize<'a>,
