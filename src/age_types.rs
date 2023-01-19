@@ -57,6 +57,30 @@ impl<T> Edge<T> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Path<V, E> {
+    vertices: Vec<Vertex<V>>,
+    edges: Vec<Edge<E>>,
+}
+
+impl<V, E> Path<V, E> {
+    pub fn vertices(&self) -> &Vec<Vertex<V>> {
+        &self.vertices
+    }
+
+    pub fn edges(&self) -> &Vec<Edge<E>> {
+        &self.edges
+    }
+}
+
+const VERTEX_SUFFIX: &[u8] = "::vertex".as_bytes();
+const EDGE_SUFFIX: &[u8] = "::edge".as_bytes();
+const PATH_SUFFIX: &[u8] = "::path".as_bytes();
+
+const VERTEX_SUFFIX_LEN: usize = 8;
+const EDGE_SUFFIX_LEN: usize = 6;
+const PATH_SUFFIX_LEN: usize = 6;
+
 impl<'a, T> FromSql<'a> for Vertex<T>
 where
     T: Deserialize<'a>,
@@ -78,7 +102,7 @@ where
         }
 
         // Remove ::vertex from bytes
-        let raw_splitted = raw.split_at(raw.len() - 8).0;
+        let raw_splitted = raw.split_at(raw.len() - VERTEX_SUFFIX_LEN).0;
 
         serde_json::de::from_slice::<Vertex<T>>(raw_splitted).map_err(Into::into)
     }
@@ -108,10 +132,70 @@ where
             return Err("unsupported JSONB encoding version".into());
         }
 
-        // Remove ::vertex from bytes
-        let raw_splitted = raw.split_at(raw.len() - 6).0;
+        // Remove ::edge from bytes
+        let raw_splitted = raw.split_at(raw.len() - EDGE_SUFFIX_LEN).0;
 
         serde_json::de::from_slice::<Edge<T>>(raw_splitted).map_err(Into::into)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        ty.schema() == "ag_catalog" && ty.name() == "agtype"
+    }
+}
+
+/// Represents path in graph. Used during process of path deserialization
+impl<'a, V, E> FromSql<'a> for Path<V, E>
+where
+    V: Deserialize<'a>,
+    E: Deserialize<'a>,
+{
+    fn from_sql(
+        ty: &Type,
+        mut raw: &'a [u8],
+    ) -> Result<Path<V, E>, Box<dyn std::error::Error + Sync + Send>> {
+        if ty.schema() != "ag_catalog" || ty.name() != "agtype" {
+            return Err("Only ag_catalog.agtype is supported".into());
+        }
+
+        let mut b = [0; 1];
+        raw.read_exact(&mut b)?;
+
+        // We only support version 1 of the jsonb binary format
+        if b[0] != 1 {
+            return Err("unsupported JSONB encoding version".into());
+        }
+
+        if !(raw[0] == "[".as_bytes()[0] && &raw[raw.len() - PATH_SUFFIX_LEN..] == PATH_SUFFIX) {
+            return Err("Invalid path definition".into());
+        }
+
+        let mut vertices: Vec<Vertex<V>> = vec![];
+        let mut edges: Vec<Edge<E>> = vec![];
+
+        let mut first_open_bracket = raw.len();
+
+        for (i, character) in raw[..raw.len() - PATH_SUFFIX_LEN - 1].iter().enumerate() {
+            if *character as char == '{' && first_open_bracket == raw.len() {
+                first_open_bracket = i;
+            } else if &raw[i..i + VERTEX_SUFFIX_LEN] == VERTEX_SUFFIX {
+                match serde_json::de::from_slice::<Vertex<V>>(&raw[first_open_bracket..i]) {
+                    Ok(vertex) => {
+                        vertices.push(vertex);
+                        first_open_bracket = raw.len();
+                    }
+                    Err(e) => return Err(e.into()),
+                };
+            } else if &raw[i..i + EDGE_SUFFIX_LEN] == EDGE_SUFFIX {
+                match serde_json::de::from_slice::<Edge<E>>(&raw[first_open_bracket..i]) {
+                    Ok(edge) => {
+                        edges.push(edge);
+                        first_open_bracket = raw.len();
+                    }
+                    Err(e) => return Err(e.into()),
+                };
+            }
+        }
+        Ok(Path { vertices, edges })
     }
 
     fn accepts(ty: &Type) -> bool {
