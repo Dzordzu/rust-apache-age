@@ -45,10 +45,7 @@ fn connect() -> (Client, String) {
             .map(char::from)
             .collect::<String>();
 
-    if let Err(e) = client.create_graph(&graph_name) {
-        println!("{:?}", e);
-        assert!(false);
-    }
+    assert!(client.create_graph(&graph_name).is_ok());
 
     (client, graph_name)
 }
@@ -70,93 +67,76 @@ fn simple_query() {
     );
 
     // Query, not query_one on puropose, just checking if iterating works
-    match tc.client.query(
-        &("SELECT v FROM ag_catalog.cypher('".to_string()
-            + &tc.graph_name
-            + "', $$ MATCH(n: Person) WHERE n.name='T' RETURN n $$) AS (v ag_catalog.agtype)"),
-        &[],
-    ) {
-        Err(e) => {
-            print!("{:?}", e);
-            assert!(false);
-        }
-        Ok(query) => {
-            let qlen = query.len();
-            for row in query {
-                let person_vertex: Vertex<Person> = row.get(0);
-                assert_eq!(person_vertex.properties().surname, "Doe");
-                assert_eq!(person_vertex.properties().name, "T");
-            }
-            assert_eq!(qlen, 1);
-        }
+    let query = tc
+        .client
+        .query(
+            &("SELECT v FROM ag_catalog.cypher('".to_string()
+                + &tc.graph_name
+                + "', $$ MATCH(n: Person) WHERE n.name='T' RETURN n $$) AS (v ag_catalog.agtype)"),
+            &[],
+        )
+        .unwrap();
+    let qlen = query.len();
+    for row in query {
+        let person_vertex: Vertex<Person> = row.get(0);
+        assert_eq!(person_vertex.properties().surname, "Doe");
+        assert_eq!(person_vertex.properties().name, "T");
     }
+    assert_eq!(qlen, 1);
 
-    match tc.client.query(
-        &("SELECT v FROM ag_catalog.cypher('".to_string()
-            + &tc.graph_name
-            + "', $$ MATCH(n: Person) RETURN n $$) AS (v ag_catalog.agtype)"),
-        &[],
-    ) {
-        Err(e) => {
-            print!("{:?}", e);
-            assert!(false);
-        }
-        Ok(query) => {
-            let qlen = query.len();
-            assert_eq!(qlen, 2);
-        }
-    }
+    let query = tc
+        .client
+        .query(
+            &("SELECT v FROM ag_catalog.cypher('".to_string()
+                + &tc.graph_name
+                + "', $$ MATCH(n: Person) RETURN n $$) AS (v ag_catalog.agtype)"),
+            &[],
+        )
+        .unwrap();
+    let qlen = query.len();
+    assert_eq!(qlen, 2);
 }
 
 #[test]
 fn person() {
     let mut tc = TestConnection::new();
 
-    match tc.client.graph_exists(&tc.graph_name) {
-        Ok(r) => {
-            assert!(r);
-        }
-        Err(_) => assert!(false),
-    }
+    assert!(tc.client.graph_exists(&tc.graph_name).unwrap());
 
-    if let Err(e) = tc.client.execute_cypher(
-        &tc.graph_name,
-        "CREATE(n: Person {name: $name, surname: $surname})",
-        Some(AgType::<Person>(Person {
-            name: "Alfred".into(),
-            surname: "Bohr".into(),
-        })),
-    ) {
-        println!("{:?}", e);
-        assert!(false);
-    }
+    assert!(tc
+        .client
+        .execute_cypher(
+            &tc.graph_name,
+            "CREATE(n: Person {name: $name, surname: $surname})",
+            Some(AgType::<Person>(Person {
+                name: "Alfred".into(),
+                surname: "Bohr".into(),
+            })),
+        )
+        .is_ok());
 
-    if let Err(e) = tc.client.execute_cypher(
-        &tc.graph_name,
-        "CREATE(n: Person {name: $name, surname: $surname})",
-        Some(AgType::<Person>(Person {
-            name: "John".into(),
-            surname: "Doe".into(),
-        })),
-    ) {
-        println!("{:?}", e);
-        assert!(false);
-    }
+    assert!(tc
+        .client
+        .execute_cypher(
+            &tc.graph_name,
+            "CREATE(n: Person {name: $name, surname: $surname})",
+            Some(AgType::<Person>(Person {
+                name: "John".into(),
+                surname: "Doe".into(),
+            })),
+        )
+        .is_ok());
 
-    match tc.client.query_cypher::<()>(
-        &tc.graph_name,
-        "MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}",
-        None,
-    ) {
-        Ok(rows) => {
-            let x: AgType<Person> = rows[0].get(0);
-            assert_eq!(x.0.surname, "Bohr");
-        }
-        Err(e) => {
-            println!("{:?}", e);
-            assert!(false);
-        }
-    }
+    let rows = tc
+        .client
+        .query_cypher::<()>(
+            &tc.graph_name,
+            "MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}",
+            None,
+        )
+        .unwrap();
+    let x: AgType<Person> = rows[0].get(0);
+    assert_eq!(x.0.surname, "Bohr");
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -174,14 +154,7 @@ fn unique_index() {
         None,
     );
 
-    let dummy_person: usize = match result {
-        Ok(rows) => rows[0].get(0),
-        Err(_) => {
-            assert!(false);
-            AgType::<usize>(0)
-        }
-    }
-    .0;
+    let dummy_person: AgType<usize> = result.unwrap()[0].get(0);
 
     tc.client
         .unique_index(&tc.graph_name, "Person", "myconstraint", "surname");
@@ -189,35 +162,27 @@ fn unique_index() {
     tc.client.execute_cypher::<IdPassing>(
         &tc.graph_name,
         "MATCH (n: Person) WHERE id(n) = $id DELETE n",
-        Some(AgType::<IdPassing>(IdPassing { id: dummy_person })),
+        Some(AgType::<IdPassing>(IdPassing { id: dummy_person.0 })),
     );
 
     tc.client
         .execute_cypher::<()>(&tc.graph_name, "CREATE(n: Person {surname: 'Name'})", None);
 
-    match tc.client.execute_cypher::<()>(
-        &tc.graph_name,
-        "CREATE(n: Person {name: 'Dummy', surname: 'Name'})",
-        None,
-    ) {
-        Ok(_) => {
-            println!("One must not be able to perform this operation");
-            assert!(false);
-        }
-        Err(_) => {}
-    }
+    println!("One must not be able to perform this operation");
+    assert!(tc
+        .client
+        .execute_cypher::<()>(
+            &tc.graph_name,
+            "CREATE(n: Person {name: 'Dummy', surname: 'Name'})",
+            None,
+        )
+        .is_err());
 
-    match tc.client.execute_cypher::<()>(
-        &tc.graph_name,
-        "CREATE(n: Person {surname: 'Name'})",
-        None,
-    ) {
-        Ok(_) => {
-            println!("One must not be able to perform this operation");
-            assert!(false);
-        }
-        Err(_) => {}
-    }
+    println!("One must not be able to perform this operation");
+    assert!(tc
+        .client
+        .execute_cypher::<()>(&tc.graph_name, "CREATE(n: Person {surname: 'Name'})", None,)
+        .is_err());
 }
 
 #[test]
@@ -230,14 +195,7 @@ fn required_constraint() {
         None,
     );
 
-    let dummy_person: usize = match result {
-        Ok(rows) => rows[0].get(0),
-        Err(_) => {
-            assert!(false);
-            AgType::<usize>(0)
-        }
-    }
-    .0;
+    let dummy_person: AgType<usize> = result.unwrap()[0].get(0);
 
     tc.client
         .required_constraint(&tc.graph_name, "Person", "myconstraint", "surname");
@@ -245,17 +203,12 @@ fn required_constraint() {
     tc.client.execute_cypher::<IdPassing>(
         &tc.graph_name,
         "MATCH (n: Person) WHERE id(n) = $id DELETE n",
-        Some(AgType::<IdPassing>(IdPassing { id: dummy_person })),
+        Some(AgType::<IdPassing>(IdPassing { id: dummy_person.0 })),
     );
 
-    match tc
+    println!("One must not be able to perform this operation");
+    assert!(tc
         .client
         .execute_cypher::<()>(&tc.graph_name, "CREATE(n: Person {name: 'Name'})", None)
-    {
-        Ok(_) => {
-            println!("One must not be able to perform this operation");
-            assert!(false);
-        }
-        Err(_) => {}
-    }
+        .is_err());
 }

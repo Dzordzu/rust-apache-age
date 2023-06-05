@@ -48,10 +48,7 @@ async fn connect() -> (Client, JoinHandle<()>, String) {
             .map(char::from)
             .collect::<String>();
 
-    if let Err(e) = client.create_graph(&graph_name).await {
-        println!("{:?}", e);
-        assert!(false);
-    }
+    assert!(client.create_graph(&graph_name).await.is_ok());
 
     (client, join_handle, graph_name)
 }
@@ -75,7 +72,7 @@ async fn simple_query() {
     ).await;
 
     // Query, not query_one on puropose, just checking if iterating works
-    match tc
+    let query = tc
         .client
         .query(
             &("SELECT v FROM ag_catalog.cypher('".to_string()
@@ -84,23 +81,16 @@ async fn simple_query() {
             &[],
         )
         .await
-    {
-        Err(e) => {
-            print!("{:?}", e);
-            assert!(false);
-        }
-        Ok(query) => {
-            let qlen = query.len();
-            for row in query {
-                let person_vertex: Vertex<Person> = row.get(0);
-                assert_eq!(person_vertex.properties().surname, "Doe");
-                assert_eq!(person_vertex.properties().name, "T");
-            }
-            assert_eq!(qlen, 1);
-        }
+        .unwrap();
+    let qlen = query.len();
+    for row in query {
+        let person_vertex: Vertex<Person> = row.get(0);
+        assert_eq!(person_vertex.properties().surname, "Doe");
+        assert_eq!(person_vertex.properties().name, "T");
     }
+    assert_eq!(qlen, 1);
 
-    match tc
+    let query = tc
         .client
         .query(
             &("SELECT v FROM ag_catalog.cypher('".to_string()
@@ -109,23 +99,11 @@ async fn simple_query() {
             &[],
         )
         .await
-    {
-        Err(e) => {
-            print!("{:?}", e);
-            assert!(false);
-        }
-        Ok(query) => {
-            let qlen = query.len();
-            assert_eq!(qlen, 2);
-        }
-    }
+        .unwrap();
+    let qlen = query.len();
+    assert_eq!(qlen, 2);
 
-    match tc.client.graph_exists(&tc.graph_name).await {
-        Ok(r) => {
-            assert!(r);
-        }
-        Err(_) => assert!(false),
-    }
+    assert!(tc.client.graph_exists(&tc.graph_name).await.unwrap());
 
     tc.client.drop_graph(&tc.graph_name).await;
 }

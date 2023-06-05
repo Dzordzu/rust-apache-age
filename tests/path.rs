@@ -50,10 +50,7 @@ fn connect() -> (Client, String) {
             .map(char::from)
             .collect::<String>();
 
-    if let Err(e) = client.create_graph(&graph_name) {
-        println!("{:?}", e);
-        assert!(false);
-    }
+    assert!(client.create_graph(&graph_name).is_ok());
 
     (client, graph_name)
 }
@@ -88,40 +85,36 @@ fn test_path() {
 
     tc.client.query(&query, &[]).unwrap();
 
-    match tc.client.query(
-        &("SELECT v FROM ag_catalog.cypher('".to_string()
-            + &tc.graph_name
-            + "', $$ MATCH p=()-->() return p $$) AS (v ag_catalog.agtype)"),
-        &[],
-    ) {
-        Err(e) => {
-            print!("{:?}", e);
-            assert!(false);
-        }
-        Ok(query) => {
-            let qlen = query.len();
-            assert_eq!(qlen, 1);
-            for row in query {
-                let path: Path<Person, ChildOf> = row.get(0);
-                assert_eq!(path.vertices().len(), 2);
-                assert_eq!(path.edges().len(), 1);
+    let query = tc
+        .client
+        .query(
+            &("SELECT v FROM ag_catalog.cypher('".to_string()
+                + &tc.graph_name
+                + "', $$ MATCH p=()-->() return p $$) AS (v ag_catalog.agtype)"),
+            &[],
+        )
+        .unwrap();
+    let qlen = query.len();
+    assert_eq!(qlen, 1);
+    for row in query {
+        let path: Path<Person, ChildOf> = row.get(0);
+        assert_eq!(path.vertices().len(), 2);
+        assert_eq!(path.edges().len(), 1);
 
-                let v1 = &path.vertices()[0];
-                assert_eq!(v1.label(), "Person");
-                assert_eq!(v1.properties().name, "Jane");
-                assert_eq!(v1.properties().surname, "Doe");
+        let v1 = &path.vertices()[0];
+        assert_eq!(v1.label(), "Person");
+        assert_eq!(v1.properties().name, "Jane");
+        assert_eq!(v1.properties().surname, "Doe");
 
-                let v2 = &path.vertices()[1];
-                assert_eq!(v2.label(), "Person");
-                assert_eq!(v2.properties().name, "John");
-                assert_eq!(v2.properties().surname, "Doe");
+        let v2 = &path.vertices()[1];
+        assert_eq!(v2.label(), "Person");
+        assert_eq!(v2.properties().name, "John");
+        assert_eq!(v2.properties().surname, "Doe");
 
-                let e = &path.edges()[0];
-                assert_eq!(e.label(), "ChildOf");
-                assert_eq!(e.properties().surname, "Doe");
-                assert_eq!(e.start_id(), v1.id());
-                assert_eq!(e.end_id(), v2.id());
-            }
-        }
+        let e = &path.edges()[0];
+        assert_eq!(e.label(), "ChildOf");
+        assert_eq!(e.properties().surname, "Doe");
+        assert_eq!(e.start_id(), v1.id());
+        assert_eq!(e.end_id(), v2.id());
     }
 }

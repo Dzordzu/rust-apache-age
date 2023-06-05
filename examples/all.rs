@@ -54,44 +54,41 @@ pub fn main() {
     }
 
     // Using execute_cypher with some input variables
-    if let Err(_) = client.execute_cypher(
-        "my_apache_graph",
-        "CREATE(n: Person {name: $name, surname: $surname})",
-        Some(AgType::<Person>(Person {
-            name: "John".into(),
-            surname: "Doe".into(),
-        })),
-    ) {
-        assert!(false);
-    }
+    assert!(client
+        .execute_cypher(
+            "my_apache_graph",
+            "CREATE(n: Person {name: $name, surname: $surname})",
+            Some(AgType::<Person>(Person {
+                name: "John".into(),
+                surname: "Doe".into(),
+            })),
+        )
+        .is_ok());
 
     // Using execute_cypher without some input variables
-    if let Err(_) = client.execute_cypher::<()>(
-        "my_apache_graph",
-        "CREATE(n: Person {name: 'Ask', surname: 'Me'})",
-        None,
-    ) {
-        assert!(false);
-    }
+    assert!(client
+        .execute_cypher::<()>(
+            "my_apache_graph",
+            "CREATE(n: Person {name: 'Ask', surname: 'Me'})",
+            None,
+        )
+        .is_ok());
 
     // Using query_cypher without parameters
-    match client.query_cypher::<()>(
-        "my_apache_graph",
-        "
+    let rows = client
+        .query_cypher::<()>(
+            "my_apache_graph",
+            "
             MATCH (n: Person) 
             WHERE n.name = 'Ask' 
             RETURN {name: n.name, surname: n.surname}
         ",
-        None,
-    ) {
-        Ok(rows) => {
-            let x: AgType<Person> = rows[0].get(0);
-            assert_eq!(x.0.surname, "Me");
-        }
-        Err(_) => {
-            assert!(false);
-        }
-    }
+            None,
+        )
+        .unwrap();
+
+    let x: AgType<Person> = rows[0].get(0);
+    assert_eq!(x.0.surname, "Me");
 
     // Prepared statements
     let statement = client
@@ -102,13 +99,9 @@ pub fn main() {
         )
         .unwrap();
 
-    match client.query(&statement, &[]) {
-        Ok(x) => {
-            let john_doe: Vertex<Person> = x[0].get(0);
-            assert_eq!(john_doe.properties().surname, "Doe");
-        }
-        Err(_) => assert!(false),
-    }
+    let x = client.query(&statement, &[]).unwrap();
+    let john_doe: Vertex<Person> = x[0].get(0);
+    assert_eq!(john_doe.properties().surname, "Doe");
 
     // Constraints
     client

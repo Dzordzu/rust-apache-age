@@ -36,21 +36,18 @@ pub fn main() {
 
     client.query(&statement, &[&AgType(day)]).unwrap();
 
-    match client.query_cypher::<()>(
-        "prepared_statementes_sync",
-        "MATCH (x: PreparedDay) RETURN x",
-        None,
-    ) {
-        Ok(x) => {
-            let day: Vertex<Day> = x[0].get(0);
-            assert_eq!(day.properties().month, 2);
-            assert_eq!(day.properties().is_rainy, false);
-            assert_eq!(day.properties().name, "Some day");
-        }
-        Err(_) => {
-            assert!(false)
-        }
-    }
+    let x = client
+        .query_cypher::<()>(
+            "prepared_statementes_sync",
+            "MATCH (x: PreparedDay) RETURN x",
+            None,
+        )
+        .unwrap();
+
+    let day: Vertex<Day> = x[0].get(0);
+    assert_eq!(day.properties().month, 2);
+    assert!(day.properties().is_rainy);
+    assert_eq!(day.properties().name, "Some day");
 
     client.drop_graph("prepared_statementes_sync").unwrap();
 }
