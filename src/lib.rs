@@ -1,5 +1,5 @@
 //! Connector to the [apache age](https://age.apache.org/) database
-//! based on the postgres and tokio-postgres crates.
+//! is based on the postgres and tokio-postgres crates.
 //!
 //! Crate source is currently
 //! [in the standalone repository](https://github.com/Dzordzu/rust-apache-age),

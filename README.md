@@ -6,7 +6,12 @@ AGE is opensource backend for postgres, that allows user to perform graph relate
 
 This repository will be eventually merged into the [age repository](https://github.com/apache/age). The status of the work needed for PR can be found in [the special issue](https://github.com/apache/age/issues/262) within AGE issue tracker
 
+## Important note
+
+This library is just a wrapper around existing postgres libraries. Connection parameters, methods etc. are indentical (unless noted) as in the [postgres](https://crates.io/crates/postgres) and [tokio-postgres](https://crates.io/crates/tokio-postgres) crates.
+
 ## Driver usage
+
 
 More examples can be find in documentation (link below)
 
