@@ -39,7 +39,7 @@ impl Drop for TestConnection {
 }
 
 async fn connect() -> (Client, JoinHandle<()>, String) {
-    let (mut client, join_handle) = Client::connect_age(CONN, NoTls).await.unwrap();
+    let (client, join_handle) = Client::connect_age(CONN, NoTls).await.unwrap();
 
     let graph_name = "age_test_".to_string()
         + &rand::thread_rng()
@@ -55,7 +55,7 @@ async fn connect() -> (Client, JoinHandle<()>, String) {
 
 #[tokio::test]
 async fn simple_query() {
-    let mut tc = TestConnection::new().await;
+    let tc = TestConnection::new().await;
 
     tc.client
         .simple_query(

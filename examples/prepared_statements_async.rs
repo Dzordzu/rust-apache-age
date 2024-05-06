@@ -13,7 +13,7 @@ unsafe impl<'a> Sync for Day<'a> {}
 
 #[tokio::main]
 pub async fn main() {
-    let (mut client, _) = Client::connect_age(
+    let (client, _) = Client::connect_age(
         "host=localhost user=postgres password=passwd port=8081",
         NoTls,
     )
