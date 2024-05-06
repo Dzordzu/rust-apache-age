@@ -29,7 +29,7 @@ pub trait AgeClient {
     ///
     /// **IMPORTANT**: At least one object has to be created with a certain label
     async fn constraint(
-        &mut self,
+        &self,
         graph: &str,
         label: &str,
         name: &str,
@@ -40,7 +40,7 @@ pub trait AgeClient {
     ///
     /// **IMPORTANT**: At least one object has to be created with a certain label
     async fn unique_index(
-        &mut self,
+        &self,
         graph: &str,
         label: &str,
         name: &str,
@@ -48,20 +48,20 @@ pub trait AgeClient {
     ) -> Result<u64, postgres::Error>;
 
     async fn required_constraint(
-        &mut self,
+        &self,
         graph: &str,
         label: &str,
         name: &str,
         field: &str,
     ) -> Result<u64, postgres::Error>;
 
-    async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
-    async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error>;
-    async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error>;
+    async fn create_graph(&self, name: &str) -> Result<u64, postgres::Error>;
+    async fn drop_graph(&self, name: &str) -> Result<u64, postgres::Error>;
+    async fn graph_exists(&self, name: &str) -> Result<bool, postgres::Error>;
 
-    /// Exexute cypher query, without any rows to be retured
+    /// Execute cypher query, without any rows to be retured
     async fn execute_cypher<T>(
-        &mut self,
+        &self,
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
@@ -81,7 +81,7 @@ pub trait AgeClient {
     /// MATCH (n: Person) WHERE n.name = 'Alfred' RETURN {name: n.name, surname: n.surname}
     /// ```
     async fn query_cypher<T>(
-        &mut self,
+        &self,
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
@@ -97,7 +97,7 @@ pub trait AgeClient {
     #[doc = include_str!("../examples/prepared_statements_async.rs")]
     /// ```
     async fn prepare_cypher(
-        &mut self,
+        &self,
         graph: &str,
         cypher: &str,
         use_arg: bool,
@@ -106,11 +106,11 @@ pub trait AgeClient {
 
 #[async_trait]
 impl AgeClient for Client {
-    async fn create_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
+    async fn create_graph(&self, name: &str) -> Result<u64, postgres::Error> {
         self.execute(CREATE_GRAPH, &[&name]).await
     }
 
-    async fn drop_graph(&mut self, name: &str) -> Result<u64, postgres::Error> {
+    async fn drop_graph(&self, name: &str) -> Result<u64, postgres::Error> {
         self.execute(DROP_GRAPH, &[&name]).await
     }
 
@@ -144,7 +144,7 @@ impl AgeClient for Client {
     }
 
     async fn query_cypher<T>(
-        &mut self,
+        &self,
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
@@ -170,7 +170,7 @@ impl AgeClient for Client {
     }
 
     async fn constraint(
-        &mut self,
+        &self,
         graph: &str,
         label: &str,
         name: &str,
@@ -182,7 +182,7 @@ impl AgeClient for Client {
     }
 
     async fn unique_index(
-        &mut self,
+        &self,
         graph: &str,
         label: &str,
         name: &str,
@@ -194,7 +194,7 @@ impl AgeClient for Client {
     }
 
     async fn required_constraint(
-        &mut self,
+        &self,
         graph: &str,
         label: &str,
         name: &str,
@@ -205,7 +205,7 @@ impl AgeClient for Client {
     }
 
     async fn execute_cypher<T>(
-        &mut self,
+        &self,
         graph: &str,
         cypher: &str,
         agtype: Option<AgType<T>>,
@@ -230,7 +230,7 @@ impl AgeClient for Client {
         }
     }
 
-    async fn graph_exists(&mut self, name: &str) -> Result<bool, postgres::Error> {
+    async fn graph_exists(&self, name: &str) -> Result<bool, postgres::Error> {
         match self.query(GRAPH_EXISTS, &[&name.to_string()]).await {
             Ok(result) => {
                 let x: i64 = result[0].get(0);
@@ -241,7 +241,7 @@ impl AgeClient for Client {
     }
 
     async fn prepare_cypher(
-        &mut self,
+        &self,
         graph: &str,
         cypher: &str,
         use_arg: bool,
