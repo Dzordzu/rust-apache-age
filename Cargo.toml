@@ -2,7 +2,7 @@
 name = "apache_age"
 description = "Rust driver for the Apache AGE. Based on postgres package"
 license = "Apache-2.0"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 repository = "https://github.com/dzordzu/rust-apache-age.git"
 authors = [ "Tomasz Durda" ]
@@ -12,15 +12,15 @@ categories = ["database"]
 all-features = true
 
 [dependencies]
-bytes = "1.4.0"
-postgres = "0.19.5"
-postgres-types = { version = "0.2.5", features = ["derive", "with-serde_json-1"] }
-serde = { version = "1.0.163", features = ["derive"] }
-serde_json = "1.0.96"
-tokio-postgres = "0.7.8"
-async-trait = { version = "0.1.68", optional = true }
+bytes = "1.6.0"
+postgres = "0.19.7"
+postgres-types = { version = "0.2.6", features = ["derive", "with-serde_json-1"] }
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+tokio-postgres = "0.7.10"
+async-trait = { version = "0.1.80", optional = true }
 rand = "0.8.5"
-tokio = { version = "1.28.2", optional = true, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.37.0", optional = true, features = ["macros", "rt-multi-thread"] }
 
 [features]
 default = ["sync", "tokio"]

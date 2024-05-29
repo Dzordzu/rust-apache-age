@@ -1,5 +1,8 @@
 # Apache AGE (Rust Driver)
 
+![Crates.io Version](https://img.shields.io/crates/v/apache_age)
+![GitHub Tag](https://img.shields.io/github/v/tag/Dzordzu/rust-apache-age)
+
 ## What is Apache AGE
 
 AGE is opensource backend for postgres, that allows user to perform graph related operations on postgres. You can read about it on the [official website](https://age.apache.org/)
