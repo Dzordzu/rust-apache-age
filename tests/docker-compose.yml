@@ -1,7 +1,7 @@
 ---
 services:
   age:
-    image: apache/age:v1.1.0
+    image: apache/age:release_PG15_1.5.0
     environment:
       POSTGRES_PASSWORD: passwd
     ports:
