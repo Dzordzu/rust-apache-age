@@ -50,7 +50,7 @@ pub async fn main() {
 
     let day: Vertex<Day> = x[0].get(0);
     assert_eq!(day.properties().month, 2);
-    assert_eq!(day.properties().is_rainy, false);
+    assert!(!day.properties().is_rainy);
     assert_eq!(day.properties().name, "Some day");
 
     client.drop_graph("prepared_statements").await.unwrap();
