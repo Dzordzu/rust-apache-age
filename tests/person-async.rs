@@ -3,7 +3,7 @@
 
 use apache_age::tokio::{AgeClient, Client, JoinHandle};
 use apache_age::{NoTls, Vertex};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, RngExt};
 use serde::{Deserialize, Serialize};
 
 const CONN: &str = "host=localhost user=postgres password=passwd port=8081";
@@ -42,7 +42,7 @@ async fn connect() -> (Client, JoinHandle<()>, String) {
     let (client, join_handle) = Client::connect_age(CONN, NoTls).await.unwrap();
 
     let graph_name = "age_test_".to_string()
-        + &rand::thread_rng()
+        + &rand::rng()
             .sample_iter(&Alphanumeric)
             .take(7)
             .map(char::from)

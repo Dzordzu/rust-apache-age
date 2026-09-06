@@ -3,7 +3,7 @@
 
 use apache_age::sync::{AgeClient, Client};
 use apache_age::{AgType, NoTls, Vertex};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, RngExt};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -39,7 +39,7 @@ fn connect() -> (Client, String) {
     .unwrap();
 
     let graph_name = "age_test_".to_string()
-        + &rand::thread_rng()
+        + &rand::rng()
             .sample_iter(&Alphanumeric)
             .take(7)
             .map(char::from)
